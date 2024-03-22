@@ -1,0 +1,48 @@
+{
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+          "source": "PowerShell",
+          "icon": "terminal-powershell"
+        },
+        "Command Prompt": {
+          "path": [
+            "${env:windir}\\Sysnative\\cmd.exe",
+            "${env:windir}\\System32\\cmd.exe"
+          ],
+          "args": [],
+          "icon": "terminal-cmd"
+        },
+        "Git Bash": {
+          "source": "Git Bash"
+        },
+        "MSYS2": {
+          "path": "C:\\msys64\\clang64.exe",
+          "args": [
+            "--login",
+            "-i"
+          ],
+          "env": {
+            "MSYSTEM": "MINGW64",
+            "CHERE_INVOKING": "1"
+          }
+        }
+      },
+      "cmake.options.statusBarVisibility": "visible",
+      "files.associations": {
+        "malloc.h": "c",
+        "gl.h": "c",
+        "sdl.h": "c",
+        "string.h": "c",
+        "conductor.h": "c",
+        "engine.h": "c",
+        "states.h": "c",
+        "types.h": "c",
+        "audio.h": "c",
+        "note.h": "c",
+        "parson.h": "c",
+        "controls.h": "c",
+        "sprite.h": "c"
+      },
+      "cmake.configureOnOpen": true,
+      "C_Cpp.default.compilerPath": "C:\\msys64\\clang64\\bin\\clang.exe"
+}
