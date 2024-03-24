@@ -83,6 +83,9 @@ fnf_sprite* make_sprite(float x, float y, bool animated) {
     sprite->y = y;
     sprite->animated = animated;
     sprite->enabled = true;
+    sprite->offset = (fnf_vector){0.0f, 0.0f};
+    sprite->scroll = (fnf_vector){1.0f, 1.0f};
+
     if(animated){
         fnf_animation_collection* colptr = FNF_NEW(fnf_animation_collection);
 
@@ -98,6 +101,44 @@ fnf_sprite* make_sprite(float x, float y, bool animated) {
 
     glUniform2f(glGetUniformLocation(sprite->shader.program, "ScreenResolution"), SCREEN_WIDTHF, SCREEN_HEIGHTF);
     glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "projection"), 1, false, (float*)ortho);
+
+    return sprite;
+}
+
+static const char* SHAPE_SHADER = glsl(
+    uniform sampler2D bitmap;
+    uniform vec2 ScreenResolution;
+
+    out vec4 FragColor;
+    in vec2 fragCoord;
+    in vec3 SColor;
+
+    void main() {    
+        vec2 uv = fragCoord;
+        FragColor = vec4(SColor, 1.0);
+    }
+);
+
+fnf_sprite* create_shape(fnf_sprite* sprite){
+    sprite->shader = create_shader_text(0, SHAPE_SHADER);
+    glUseProgram(sprite->shader.program);
+    glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "projection"), 1, false, (float*)ortho);
+    sprite->graphic.w = sprite->w;
+    sprite->graphic.h = sprite->h;
+
+    _init_sprite(sprite);
+
+    scale_sprite(sprite, 1.f, 1.f);    
+    resize_sprite(sprite, sprite->w, sprite->h);
+
+    return sprite;
+}
+
+fnf_sprite* set_color(fnf_sprite* sprite, uint32_t color){
+    sprite->color = color;
+    
+    glUseProgram(sprite->shader.program);
+    glUniform3f(glGetUniformLocation(sprite->shader.program, "color"), sprite->r / 255.f, sprite->g / 255.f, sprite->b / 255.f);
 
     return sprite;
 }
@@ -119,6 +160,8 @@ fnf_sprite *load_sprite(fnf_sprite *sprite, const char *path)
 {
     int c;
     void* row_pointers = stbi_load(path, &sprite->w, &sprite->h, &c, 0);
+    if(!row_pointers)
+        printf("%s does not exist\n", path);
     int format = c == 3 ? GL_RGB : GL_RGBA;
 
     sprite->graphic.w = sprite->w;
@@ -172,10 +215,11 @@ fnf_sprite* resize_sprite(fnf_sprite* sprite, uint16 w, uint16 h){
 
 fnf_sprite* scale_sprite(fnf_sprite* sprite, float x, float y){
     mat4 model = GLM_MAT4_IDENTITY_INIT;
-    glm_scale(model, (vec3){x, y, 1});
+    glm_scale(model, (vec3){x, y, 0.f});
 
     sprite->scale.x = x;
     sprite->scale.y = y;
+
     glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "model"), 1, false, (float*)model);
     return sprite;
 }
@@ -186,7 +230,7 @@ fnf_sprite* move_sprite(fnf_sprite* sprite, float x, float y)
     sprite->y = y;//; - (sprite->h);
 
     mat4 view = GLM_MAT4_IDENTITY_INIT;
-    glm_translate(view, (vec3){sprite->x, sprite->y, 0.0f});
+    glm_translate(view, (vec3){sprite->x + sprite->offset.x, sprite->y + sprite->offset.y, 0.0f});
 
     glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "view"), 1, false, (float*)view);
 
@@ -212,12 +256,16 @@ fnf_sprite* center_sprite(fnf_sprite* sprite, fnf_axis_t axis){
 void handle_animations(fnf_sprite* sprite){
     if(!sprite->animation.currentAnimation)
         return;
+
     int32 playlistNum = sprite->animation.currentAnimation->playlist[sprite->animation.frameNum];
     if(playlistNum == -1)
     {
-        if(sprite->animation.currentAnimation->looped)
-            sprite->animation.frameNum = 0;
-        return;
+        sprite->animation.finished = true;
+        if(sprite->animation.currentAnimation->looped){
+            sprite->animation.frameNum = 1;
+            sprite->animation.finished = false;
+        }
+        playlistNum = sprite->animation.currentAnimation->playlist[sprite->animation.frameNum - 1];
     }
     //if(strcmp(sprite->animation.currentAnimation->name, "gf dance l")==0)
     //printf("Anim: %s\nPlaylist number: %i\n", sprite->animation.currentAnimation->name, playlistNum);
@@ -232,30 +280,23 @@ void handle_animations(fnf_sprite* sprite){
 
     //float offsetX = (sprite->x + frame->fx);
     //float offsetY = (sprite->y + frame->fy);
-    sprite->graphic.w = frame->w;
-    sprite->graphic.h = frame->h;
+    sprite->graphic.w = frame->w + frame->fw;
+    sprite->graphic.h = frame->h + frame->fh;
     generateVertices(sprite->gl.vertices, 0, 0, (float)frame->fw, (float)frame->fh);
     generate2DVertices(sprite->gl.vertices, frame->x, frame->y, frame->w, frame->h);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(sprite->gl.vertices), sprite->gl.vertices);
 
-    //if( )
+    uint32 dt = SDL_GetTicks() - sprite->animation.lastFrame;
 
-    //printf("%i\n",SDL_GetTicks());
-
-    //uint32 curFrame = SDL_GetTicks() % sprite->animation->currentAnimation->fps;
-
-    //if(curFrame == 0)
-    //    sprite->frameNum++;
-
-    sprite->animation.frameNum=((SDL_GetTicks() / sprite->animation.currentAnimation->fps) % sprite->animation.currentAnimation->animation->framesSize);//++;
+    if(!sprite->animation.finished){
+        sprite->animation.frameNum++; //= ((SDL_GetTicks() / (1000 / sprite->animation.currentAnimation->fps)) % sprite->animation.currentAnimation->playlistSize + 1);//++;
+        //sprite->animation.frameNum = (int)floor(sprite->animation.currentAnimation->fps * SDL_GetTicks() / 1000) % sprite->animation.currentAnimation->playlistSize;
+        sprite->animation.lastFrame = SDL_GetTicks();
+    }
 }
 
-void draw_sprite(fnf_sprite* sprite) {
-    if(sprite == 0) return;
-    if(!sprite->enabled) return;
-
+bool screen_intersect(fnf_sprite* sprite){
     int Amin, Amax, Bmin, Bmax;
-    /* Horizontal intersection */
     Amin = sprite->x;
     Amax = Amin + sprite->w;
     Bmin = 0;
@@ -265,7 +306,7 @@ void draw_sprite(fnf_sprite* sprite) {
     if (Bmax < Amax)
         Amax = Bmax;
     if (Amax <= Amin)
-        return;
+        return false;
 
     /* Vertical intersection */
     Amin = sprite->y;
@@ -277,7 +318,14 @@ void draw_sprite(fnf_sprite* sprite) {
     if (Bmax < Amax)
         Amax = Bmax;
     if (Amax <= Amin)
-        return;
+        return false;
+    return true;
+}
+
+void draw_sprite(fnf_sprite* sprite) {
+    if(sprite == 0) return;
+    if(!sprite->enabled) return;
+    if(!screen_intersect(sprite)) return;
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, sprite->graphic.spr);
@@ -291,11 +339,32 @@ void draw_sprite(fnf_sprite* sprite) {
     if(sprite->animated)
         handle_animations(sprite);
 
-    move_sprite(sprite, sprite->x + sprite->offset.x, sprite->y + sprite->offset.y);
-    sprite->x -= sprite->offset.x;
-    sprite->y -= sprite->offset.y;
+    static float xpos = 0.0f, ypos = 0.0f;
+    mat4 cam = GLM_MAT4_IDENTITY_INIT;
+
+    xpos = sprite->x;
+    ypos = sprite->y;
+
+    move_sprite(sprite, xpos, ypos);
 
     scale_sprite(sprite, sprite->scale.x, sprite->scale.y);
-    
+
+    if(sprite->camera){
+        float camx = (sprite->camera->x * sprite->scroll.x) - SCREEN_WIDTHF * 0.5f;
+        float camy = (sprite->camera->y * sprite->scroll.y) - SCREEN_HEIGHTF * 0.5f;
+        camx *= sprite->camera->zoom;
+        camy *= sprite->camera->zoom;
+
+        glm_scale(cam, (vec3){sprite->camera->zoom, sprite->camera->zoom, 0.0f});
+        glm_translate(cam, (vec3){camx, camy, 0.0f});
+
+        mat4 view = GLM_MAT4_IDENTITY_INIT;
+        glm_translate(view, (vec3){(sprite->x + sprite->offset.x) * sprite->scroll.x * sprite->camera->zoom, (sprite->y + sprite->offset.y) * sprite->scroll.y * sprite->camera->zoom, 0.0f});
+
+        glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "view"), 1, false, (float*)view);
+    }
+
+    glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "camera"), 1, false, (float*)cam);
+
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }

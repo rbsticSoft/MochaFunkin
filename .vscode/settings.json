@@ -41,7 +41,8 @@
         "note.h": "c",
         "parson.h": "c",
         "controls.h": "c",
-        "sprite.h": "c"
+        "sprite.h": "c",
+        "sstream": "c"
       },
       "cmake.configureOnOpen": true,
       "C_Cpp.default.compilerPath": "C:\\msys64\\clang64\\bin\\clang.exe"

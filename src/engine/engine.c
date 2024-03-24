@@ -22,19 +22,25 @@ uint32 current_frame(){
 }
 
 void keypress(uint32 key, bool press){
-    uint8_t keynum;
+    fnf_key_t keynum;
     switch(key){
         case SDLK_UP: 
-            keynum = 2;
+            keynum = UP;
             break;
         case SDLK_DOWN: 
-            keynum = 1;
+            keynum = DOWN;
             break;
         case SDLK_LEFT: 
-            keynum = 0;
+            keynum = LEFT;
             break;
         case SDLK_RIGHT: 
-            keynum = 3;
+            keynum = RIGHT;
+            break;
+        case SDLK_RETURN: 
+            keynum = ENTER;
+            break;
+        case SDLK_ESCAPE: 
+            keynum = BACK;
             break;
     }
 
@@ -104,8 +110,8 @@ void start_fnfc(){
                     break;
             }
         }
-        glClearColor(0.f,0.f,0.f,1.f);
         glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(0.f,0.f,0.f,1.f);
 
         if(get_nextState())
             _switchState();

@@ -32,6 +32,9 @@ typedef struct {
     fnf_animation_collection* collection;
     fnf_animation_prefix* currentAnimation;
     uint16 frameNum;
+    uint32 lastFrame;
+    uint32 accum;
+    bool finished;
 } fnf_animation_controller;
 
 

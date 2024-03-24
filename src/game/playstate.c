@@ -9,6 +9,7 @@
 #include <math.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <malloc.h>
 
 #define SWAG_WIDTH (160.f*0.7f)
@@ -18,7 +19,7 @@ JSON_Value* chart;
 fnf_sprite* enemyStrums[4];
 fnf_sprite* playerStrums[4];
 fnf_sprite* arrow_base;
-fnf_sprite* health_bar_bg;
+fnf_sprite* health_bar_bg, *health_bar;
 
 fnf_note* note_sprites = NULL;
 uint32_t note_size = 0;
@@ -27,6 +28,8 @@ fnf_audio inst;
 fnf_audio voices;
 
 fnf_song song;
+
+bool hit_sections[256];
 
 const char* directions[] = {
     "static left",
@@ -70,11 +73,13 @@ const char* directions_sus_end[] = {
     "redEnd"
 };
 
-const char* load_song_name = "guns";
+const char* load_song_name = "pico";
 const char* difficulty = "hard";
+char score_txt[32] = "Score: 0";
 
 int score = 0;
 float health = 0.0f;
+bool must_hit_now = false;
 
 bool bring_to_front(fnf_sprite** index, fnf_sprite** end);
 int count_notes();
@@ -83,7 +88,87 @@ fnf_note* generate_note(float strum_time, int note_type, int must_hit, bool sus_
 void generate_static_notes();
 void keyShit();
 
+fnf_camera* play_camera;
+fnf_camera* hud_camera;
+
+fnf_vector cam_follow;
+
+fnf_sprite* dad, *gf, *boyfriend;
+
+float lerp(float a, float b, float ratio)
+{
+    return a + ratio * (b - a);
+}
+
 void create_play_state(){
+    play_camera = make_camera();
+    hud_camera = make_camera();
+
+    play_camera->zoom = 0.9f;
+
+    fnf_sprite* stage_back = make_sprite(-600, -200, false);
+    stage_back->camera = play_camera;
+    stage_back->scroll.x = 0.9f;
+    stage_back->scroll.x = 0.9f;
+    load_sprite(stage_back, "assets/shared/images/stageback.png");
+
+    fnf_sprite* stage_front = make_sprite(-650, 600, false);
+    stage_front->camera = play_camera;
+    stage_front->scroll.x = 0.9f;
+    stage_front->scroll.x = 0.9f;
+    //scale_sprite(stage_front, 1.1f, 1.0f);
+    load_sprite(stage_front, "assets/shared/images/stagefront.png");
+    resize_sprite(stage_front, stage_front->w * 1.1, stage_front->h);
+
+    fnf_sprite* stage_curtains = make_sprite(-500, -300, false);
+    stage_curtains->camera = play_camera;
+    stage_curtains->scroll.x = 1.3f;
+    stage_curtains->scroll.y = 1.3f;
+    scale_sprite(stage_curtains, 0.9f, 1.0f);
+    load_sprite(stage_curtains, "assets/shared/images/stagecurtains.png");
+    resize_sprite(stage_curtains, stage_curtains->w * 0.9, stage_curtains->h);
+
+    add_sprite(stage_back);
+    add_sprite(stage_front);
+    add_sprite(stage_curtains);
+
+    gf = make_sprite(400, 130, true);
+    gf->scroll = (fnf_vector){0.95f, 0.95f};
+    gf->camera = play_camera;
+
+    load_sprite(gf, "assets/shared/images/characters/GF_assets.png");
+    animation_load_atlas(&gf->animation, "assets/shared/images/characters/GF_assets.xml");
+
+    int32 lind[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
+    int32 rind[] = {15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29};
+
+    animation_add_prefix_indices(&gf->animation, "danceLeft", "GF Dancing Beat", false, 24, lind, 15);
+    animation_add_prefix_indices(&gf->animation, "danceRight", "GF Dancing Beat", false, 24, rind, 15);
+
+    animation_play(&gf->animation, "danceLeft");
+    add_sprite(gf);
+
+    boyfriend = make_sprite(770, 450, true);
+    boyfriend->camera = play_camera;
+    load_sprite(boyfriend, "assets/shared/images/characters/BOYFRIEND.png");
+    animation_load_atlas(&boyfriend->animation, "assets/shared/images/characters/BOYFRIEND.xml");
+    animation_add_prefix(&boyfriend->animation, "idle", "BF idle dance", false, 24);
+    animation_add_prefix(&boyfriend->animation, "singLEFT", "BF NOTE LEFT", false, 24);
+    animation_add_prefix(&boyfriend->animation, "singDOWN", "BF NOTE DOWN", false, 24);
+    animation_add_prefix(&boyfriend->animation, "singUP", "BF NOTE UP", false, 24);
+    animation_add_prefix(&boyfriend->animation, "singRIGHT", "BF NOTE RIGHT", false, 24);
+    
+    animation_play(&boyfriend->animation, "idle");
+    add_sprite(boyfriend);
+
+    dad = make_sprite(100, 100, true);
+    dad->camera = play_camera;
+    load_sprite(dad, "assets/shared/images/characters/DADDY_DEAREST.png");
+    animation_load_atlas(&dad->animation, "assets/shared/images/characters/DADDY_DEAREST.xml");
+    animation_add_prefix(&dad->animation, "idle", "Dad idle dance", false, 24);
+    animation_play(&dad->animation, "idle");
+    add_sprite(dad);
+
     arrow_base = make_sprite(0, 0, true);
     animation_load_atlas(&arrow_base->animation, "assets/images/NOTE_assets.xml");
 
@@ -137,6 +222,19 @@ void create_play_state(){
 	center_sprite(health_bar_bg, X);
 	add_sprite(health_bar_bg);
 
+	fnf_sprite* health_barbg = make_sprite(health_bar_bg->x + 4, health_bar_bg->y + 4, false);
+    create_shape(health_barbg);
+    resize_sprite(health_barbg, health_bar_bg->w - 8, health_bar_bg->h - 8);
+    set_color(health_barbg, 0xFF33FF66);
+	//healthBar.createFilledBar(, 0xFF66FF33);
+	add_sprite(health_barbg);
+
+	health_bar = make_sprite(health_bar_bg->x + 4, health_bar_bg->y + 4, false);
+    create_shape(health_bar);
+    resize_sprite(health_bar, (health_bar_bg->w - 8) * 0.5f, health_bar_bg->h - 8);
+    set_color(health_bar, 0xFF0000FF);
+	//healthBar.createFilledBar(, 0xFF66FF33);
+	add_sprite(health_bar);
 
     change_bpm(current_conductor, song.bpm);
     
@@ -188,9 +286,15 @@ bool update_note(fnf_note* da_note){
     }
     return true;
 }
-
+void beat_hit();
 void draw_play_state(){
+    static int32 oldStep = 0;
+	static int32 curStep = 0;
+
     current_conductor->songPosition = roundf(get_audio_position(&inst)) + current_conductor->offset;
+    oldStep = curStep;
+    curStep = (int32)floorf(current_conductor->songPosition / current_conductor->stepCrochet);
+
     keyShit();
 
     for(int i=0; i < note_size; i++){
@@ -198,6 +302,13 @@ void draw_play_state(){
         int strmid = 50 + SWAG_WIDTH / 2;
         float ypos = (50 - (current_conductor->songPosition - note_sprites[i].strum_time) * (0.45 * song.speed));
 
+        //if(da_note->sustain)
+            //ypos += da_note->sprite->graphic.h / 2.0f;
+
+        if(da_note->was_good_hit && !da_note->must_press)
+            da_note->sprite->enabled = false;
+
+        /*
         if (da_note->sustain
 			&& (!da_note->must_press || (da_note->was_good_hit || (!da_note->can_be_hit)))
 			&& da_note->sprite->y + da_note->sprite->offset.y * da_note->sprite->scale.y <= strmid){
@@ -207,15 +318,43 @@ void draw_play_state(){
 			swag_rect.h -= swag_rect.y;
 			da_note->sprite->clip = swag_rect;
 		}
+        */
         move_sprite(note_sprites[i].sprite, note_sprites[i].sprite->x, ypos);
         update_note(&note_sprites[i]);
     }
 
+    fnf_sprite* whosturn = must_hit_now ? boyfriend : dad;
+
+    if(hit_sections[curStep/16]){
+        cam_follow.x = ((boyfriend->graphic.w) * 0.5f) - 100;
+        cam_follow.y = ((boyfriend->graphic.h) * 0.5f) - 100;
+    }
+    else{
+        cam_follow.x = 400 + (dad->graphic.w / 2);
+        cam_follow.y = (dad->graphic.w / 2);
+    }
+
+    play_camera->x = lerp(play_camera->x, cam_follow.x, 0.04);
+    play_camera->y = lerp(play_camera->y, cam_follow.y, 0.04);
+
+
+    if(curStep % 4 == 0 && oldStep != curStep)
+        beat_hit();
+
     draw_all_sprites();
-    
-    static char score_txt[32];
-    sprintf(score_txt, "Score: %i", score);
+
     draw_text(score_txt, health_bar_bg->x + health_bar_bg->w - 190.f, health_bar_bg->y + 30.f, 1.f);
+}
+
+void beat_hit(){
+    static bool danceLeft = false;
+
+    animation_play(&boyfriend->animation, "idle");
+    danceLeft = !danceLeft;
+        if(danceLeft)
+            animation_play(&gf->animation, "danceLeft");
+        else
+            animation_play(&gf->animation, "danceRight");
 }
 
 void uninit_play_state(){
@@ -290,6 +429,7 @@ void generate_song(const char* path){
             int note_type = json_array_get_number(note_data, 1);
             int sus_time = json_array_get_number(note_data, 2);
             int must_hit = json_object_get_boolean(section, "mustHitSection");
+            hit_sections[i] = must_hit;
 
             if(sus_time){
                 sus_time = (int)floor(sus_time / current_conductor->stepCrochet);
@@ -298,7 +438,8 @@ void generate_song(const char* path){
                     fnf_note* da_note = generate_note(strum_time + (current_conductor->stepCrochet * sus) + current_conductor->stepCrochet, note_type, must_hit, 1);
                     const char** sus_type = sus == sus_time-1 ? directions_sus_end : directions_sus;
 
-                    scale_sprite(da_note->sprite, .7f, da_note->sprite->scale.y * (current_conductor->stepCrochet / 100 * 1.5 * song.speed));
+                    if(sus != sus_time-1)
+                        scale_sprite(da_note->sprite, .7f, da_note->sprite->scale.y * (current_conductor->stepCrochet / 100 * 1.5 * song.speed));
                     animation_play(&da_note->sprite->animation, sus_type[note_type % 4]);
                     move_sprite(da_note->sprite, da_note->sprite->x + 40, da_note->sprite->y);
                     add_sprite(da_note->sprite);
@@ -339,7 +480,7 @@ void generate_static_notes(){
         uint32_t side = i>3;
 
         strums[i % 4] = strum;
-        
+
         scale_sprite(strum, 0.7f, 0.7f);
         animation_play(&strum->animation, directions[i % 4]);
         uint32_t strumx = (SWAG_WIDTH * (i % 4)) + 92 + ((SCREEN_WIDTHF/2) * side);
@@ -359,7 +500,6 @@ bool pressed_key(bool* keys){
 
 void good_note_hit(fnf_note* da_note){
     if(da_note->was_good_hit) return;
-
     for(int i=0; i < 4; i++){
         if(da_note->note_data == i){
             animation_play(&playerStrums[i]->animation, directions_confirm[i]);
@@ -370,6 +510,31 @@ void good_note_hit(fnf_note* da_note){
 
     da_note->sprite->enabled = false;
     da_note->was_good_hit = true;
+    switch(da_note->note_data % 4){
+        case 0:
+    animation_play(&boyfriend->animation, "singLEFT"); break;
+        case 1:
+    animation_play(&boyfriend->animation, "singDOWN"); break;
+        case 2:
+    animation_play(&boyfriend->animation, "singUP"); break;
+        case 3:
+    animation_play(&boyfriend->animation, "singRIGHT"); break;
+    }
+
+    if(da_note->sustain) return;
+
+    int note_diff = abs(da_note->strum_time - current_conductor->songPosition);
+
+    score += 350;
+
+    if (note_diff > current_conductor->safeZoneOffset * 0.9)
+		score -= 300;
+	else if (note_diff > current_conductor->safeZoneOffset * 0.75)
+		score -= 250;
+	else if (note_diff > current_conductor->safeZoneOffset * 0.2)
+		score -= 150;
+    
+    sprintf(score_txt, "Score: %i", score);
 }
 
 void keyShit(){
@@ -400,7 +565,7 @@ void keyShit(){
 
     for(int i=0; i < note_size; i++){
         if(!pressed_key(press_array) && !pressed_key(hold_array)) break;
-
+        
         fnf_note* da_note = &note_sprites[i];
         if(!da_note->sprite->enabled) continue;
 

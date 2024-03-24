@@ -130,10 +130,11 @@ bool animation_add_prefix_indices(fnf_animation_controller* controller, const ch
 
 bool animation_play(fnf_animation_controller* animation, const char* prefix) {
     fnf_animation_prefix* anim = find_prefix(animation, prefix);
-    if(animation->currentAnimation == anim)
+    if(animation->currentAnimation == anim && !animation->finished)
         return false;
 
     animation->frameNum = 0;
     animation->currentAnimation = anim;
+    animation->finished = false;
     return animation->currentAnimation != NULL;
 }

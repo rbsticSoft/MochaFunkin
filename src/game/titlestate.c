@@ -28,6 +28,7 @@ void create_title_state(){
     animation_add_prefix_indices(&spr->animation, "gf dance l", "gfDance", false, 24, lind, 15);
     animation_add_prefix_indices(&spr->animation, "gf dance r", "gfDance", false, 24, rind, 15);
     animation_play(&spr->animation, "gf dance l");
+
     load_sprite(spr, "assets/images/gfDanceTitle.png");
 
     fnf_sprite* titleEnter = make_sprite(100.f, SCREEN_HEIGHTF*0.8f, true);
@@ -54,7 +55,7 @@ void draw_title_state(){
 
     oldStep = curStep;
 
-    if(key_just_pressed(UP))
+    if(key_just_pressed(ENTER))
         switch_state(&play_state);
     if(key_just_pressed(LEFT))
         animation_play(&spr->animation, "gf dance l");
@@ -64,13 +65,12 @@ void draw_title_state(){
     curStep = (int32)floorf(current_conductor->songPosition / current_conductor->stepCrochet);
     draw_all_sprites();
     if(curStep % 4 == 0 && oldStep != curStep){
-        //printf("beat hit\nstep:%i\nposition:%f\n", curStep, current_conductor->songPosition);
         danceLeft = !danceLeft;
-        /*if(danceLeft)
-            animation_play(spr->animation, "gf dance l");
+        if(danceLeft)
+            animation_play(&spr->animation, "gf dance l");
         else
-            animation_play(spr->animation, "gf dance r");
-        */
+            animation_play(&spr->animation, "gf dance r");
+        
     }
 }
 
