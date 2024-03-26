@@ -128,13 +128,28 @@ bool animation_add_prefix_indices(fnf_animation_controller* controller, const ch
     return true;
 }
 
+#include <SDL2/SDL.h>
+
 bool animation_play(fnf_animation_controller* animation, const char* prefix) {
     fnf_animation_prefix* anim = find_prefix(animation, prefix);
-    if(animation->currentAnimation == anim && !animation->finished)
-        return false;
+    if(!anim) return;
+    //if(animation->currentAnimation == anim && !animation->finished)
+    //    return false;
 
     animation->frameNum = 0;
     animation->currentAnimation = anim;
     animation->finished = false;
+    animation->lastFrame = SDL_GetTicks();
     return animation->currentAnimation != NULL;
+}
+
+bool animation_set_offset(fnf_animation_controller* animation, const char* prefix, float x, float y){
+    fnf_animation_prefix* anim = find_prefix(animation, prefix);
+    if(!anim)
+        return false;
+
+    anim->offset.x = -x;
+    anim->offset.y = -y;
+
+    return true;
 }

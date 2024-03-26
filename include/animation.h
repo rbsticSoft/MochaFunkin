@@ -9,7 +9,7 @@ typedef struct {
 
 typedef struct {
     char name[64];
-    fnf_frame frames[255];
+    fnf_frame frames[64];
     uint16 framesSize;
 } fnf_animation;
 
@@ -18,12 +18,13 @@ typedef struct {
         uint16 fps;
         bool looped;
         fnf_animation* animation;
+        fnf_vector offset;
         int16 playlistSize;
         int32 playlist[255];
 } fnf_animation_prefix;
 
 typedef struct {
-    fnf_animation animations[512];
+    fnf_animation animations[256];
     fnf_animation_prefix prefixes[64];
     uint16 animationsSize, prefixesSize;
 } fnf_animation_collection;
@@ -42,4 +43,6 @@ bool animation_load_atlas(fnf_animation_controller* controller, const char* path
 bool animation_add_prefix(fnf_animation_controller* controller, const char* prefix, const char* anim, bool looped, int32 fps);
 bool animation_add_prefix_indices(fnf_animation_controller* controller, const char* prefix, const char* anim, bool looped, int32 fps, int32* indices, uint8 indices_size);
 bool animation_play(fnf_animation_controller* controller, const char* prefix);
+bool animation_set_offset(fnf_animation_controller* animation, const char* prefix, float x, float y);
+
 #endif // ANIMATION_H

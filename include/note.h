@@ -12,6 +12,7 @@ typedef struct {
 typedef struct {
     char name[256];
     float bpm, speed;
+    char bf[32], dad[32];
 } fnf_song;
 
 #endif // NOTE_H

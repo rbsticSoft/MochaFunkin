@@ -69,6 +69,11 @@ fnf_audio* play_audio(fnf_audio* audio){
     return audio;
 }
 
+fnf_audio* set_audio_volume(fnf_audio* audio, float vol){
+    alSourcef(audio->source, AL_GAIN, vol);
+    return audio;
+}
+
 bool delete_audio(fnf_audio* audio){
     alDeleteBuffers(1, &audio->buffer);
     alDeleteSources(1, &audio->source);

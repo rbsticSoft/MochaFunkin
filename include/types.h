@@ -45,10 +45,20 @@ typedef int64_t int64;
 #define SCREEN_WIDTHF 1280.f
 #define SCREEN_HEIGHTF 720.f
 
-//float lerp(float a, float b, float ratio)
-//{
-//    return a + ratio * (b - a);
-//}
+typedef struct {
+    float x,y;
+} fnf_vector;
+
+typedef struct {
+    float x,y,w,h;
+} fnf_rect;
+
+typedef enum {
+    NONE,
+    X,
+    Y,
+    XY
+} fnf_axis_t;
 
 #ifdef __clang__
 //#define NULL 0

@@ -5,6 +5,8 @@
 #include "conductor.h"
 #include "audio.h"
 #include "font.h"
+#include "spriteutil.h"
+#include "engine.h"
 
 #include <math.h>
 #include <assert.h>
@@ -31,54 +33,12 @@ fnf_song song;
 
 bool hit_sections[256];
 
-const char* directions[] = {
-    "static left",
-    "static down",
-    "static up",
-    "static right"
-};
-
-const char* directions_pressed[] = {
-    "pressed left",
-    "pressed down",
-    "pressed up",
-    "pressed right"
-};
-
-const char* directions_confirm[] = {
-    "confirm left",
-    "confirm down",
-    "confirm up",
-    "confirm right"
-};
-
-const char* directions_color[] = {
-    "purpleScroll",
-    "blueScroll",
-    "greenScroll",
-    "redScroll"
-};
-
-const char* directions_sus[] = {
-    "purpleHold",
-    "blueHold",
-    "greenHold",
-    "redHold"
-};
-
-const char* directions_sus_end[] = {
-    "purpleEnd",
-    "blueEnd",
-    "greenEnd",
-    "redEnd"
-};
-
 const char* load_song_name = "pico";
 const char* difficulty = "hard";
 char score_txt[32] = "Score: 0";
 
 int score = 0;
-float health = 0.0f;
+float health = 1.0f;
 bool must_hit_now = false;
 
 bool bring_to_front(fnf_sprite** index, fnf_sprite** end);
@@ -86,6 +46,7 @@ int count_notes();
 void generate_song(const char* path);
 fnf_note* generate_note(float strum_time, int note_type, int must_hit, bool sus_time);
 void generate_static_notes();
+void add_health(float hp);
 void keyShit();
 
 fnf_camera* play_camera;
@@ -94,6 +55,8 @@ fnf_camera* hud_camera;
 fnf_vector cam_follow;
 
 fnf_sprite* dad, *gf, *boyfriend;
+fnf_sprite* dad_icon, *bf_icon;
+float bf_timer, dad_timer;
 
 float lerp(float a, float b, float ratio)
 {
@@ -106,31 +69,7 @@ void create_play_state(){
 
     play_camera->zoom = 0.9f;
 
-    fnf_sprite* stage_back = make_sprite(-600, -200, false);
-    stage_back->camera = play_camera;
-    stage_back->scroll.x = 0.9f;
-    stage_back->scroll.x = 0.9f;
-    load_sprite(stage_back, "assets/shared/images/stageback.png");
-
-    fnf_sprite* stage_front = make_sprite(-650, 600, false);
-    stage_front->camera = play_camera;
-    stage_front->scroll.x = 0.9f;
-    stage_front->scroll.x = 0.9f;
-    //scale_sprite(stage_front, 1.1f, 1.0f);
-    load_sprite(stage_front, "assets/shared/images/stagefront.png");
-    resize_sprite(stage_front, stage_front->w * 1.1, stage_front->h);
-
-    fnf_sprite* stage_curtains = make_sprite(-500, -300, false);
-    stage_curtains->camera = play_camera;
-    stage_curtains->scroll.x = 1.3f;
-    stage_curtains->scroll.y = 1.3f;
-    scale_sprite(stage_curtains, 0.9f, 1.0f);
-    load_sprite(stage_curtains, "assets/shared/images/stagecurtains.png");
-    resize_sprite(stage_curtains, stage_curtains->w * 0.9, stage_curtains->h);
-
-    add_sprite(stage_back);
-    add_sprite(stage_front);
-    add_sprite(stage_curtains);
+    create_stage("stage", play_camera);
 
     gf = make_sprite(400, 130, true);
     gf->scroll = (fnf_vector){0.95f, 0.95f};
@@ -148,65 +87,15 @@ void create_play_state(){
     animation_play(&gf->animation, "danceLeft");
     add_sprite(gf);
 
-    boyfriend = make_sprite(770, 450, true);
+    boyfriend = create_character(770, 450, "bf");
     boyfriend->camera = play_camera;
-    load_sprite(boyfriend, "assets/shared/images/characters/BOYFRIEND.png");
-    animation_load_atlas(&boyfriend->animation, "assets/shared/images/characters/BOYFRIEND.xml");
-    animation_add_prefix(&boyfriend->animation, "idle", "BF idle dance", false, 24);
-    animation_add_prefix(&boyfriend->animation, "singLEFT", "BF NOTE LEFT", false, 24);
-    animation_add_prefix(&boyfriend->animation, "singDOWN", "BF NOTE DOWN", false, 24);
-    animation_add_prefix(&boyfriend->animation, "singUP", "BF NOTE UP", false, 24);
-    animation_add_prefix(&boyfriend->animation, "singRIGHT", "BF NOTE RIGHT", false, 24);
-    
-    animation_play(&boyfriend->animation, "idle");
     add_sprite(boyfriend);
 
-    dad = make_sprite(100, 100, true);
+    dad = create_character(100, 100, "dad");
     dad->camera = play_camera;
-    load_sprite(dad, "assets/shared/images/characters/DADDY_DEAREST.png");
-    animation_load_atlas(&dad->animation, "assets/shared/images/characters/DADDY_DEAREST.xml");
-    animation_add_prefix(&dad->animation, "idle", "Dad idle dance", false, 24);
-    animation_play(&dad->animation, "idle");
     add_sprite(dad);
 
-    arrow_base = make_sprite(0, 0, true);
-    animation_load_atlas(&arrow_base->animation, "assets/images/NOTE_assets.xml");
-
-    animation_add_prefix(&arrow_base->animation, "greenScroll", "green instance 1", false, 30);
-	animation_add_prefix(&arrow_base->animation, "redScroll", "red instance 1", false, 30);
-	animation_add_prefix(&arrow_base->animation, "blueScroll", "blue instance 1",false, 30);
-	animation_add_prefix(&arrow_base->animation, "purpleScroll", "purple instance 1", false, 30);
-
-    animation_add_prefix(&arrow_base->animation, "greenHold", "green hold piece instance 1", false, 30);
-    animation_add_prefix(&arrow_base->animation, "redHold", "red hold piece instance 1", false, 30);
-    animation_add_prefix(&arrow_base->animation, "blueHold", "blue hold piece instance 1", false, 30);
-    animation_add_prefix(&arrow_base->animation, "purpleHold", "purple hold piece instance 1", false, 30);
-
-    animation_add_prefix(&arrow_base->animation, "greenEnd", "green hold end instance 1", false, 30);
-    animation_add_prefix(&arrow_base->animation, "redEnd", "red hold end instance 1", false, 30);
-    animation_add_prefix(&arrow_base->animation, "blueEnd", "blue hold end instance 1", false, 30);
-    animation_add_prefix(&arrow_base->animation, "purpleEnd", "pruple end hold instance 1", false, 30);
-
-	animation_add_prefix(&arrow_base->animation, "static left", "arrow static instance 1", false, 24);
-    animation_add_prefix(&arrow_base->animation, "pressed left", "left press instance 1", false, 24);
-	animation_add_prefix(&arrow_base->animation, "confirm left", "left confirm instance 1", false, 24);
-
-	animation_add_prefix(&arrow_base->animation, "static down", "arrow static instance 2", false, 24);
-    animation_add_prefix(&arrow_base->animation, "pressed down", "down press instance 1", false, 24);
-	animation_add_prefix(&arrow_base->animation, "confirm down", "down confirm instance 1", false, 24);
-
-	animation_add_prefix(&arrow_base->animation, "static up", "arrow static instance 4", false, 24);
-    animation_add_prefix(&arrow_base->animation, "pressed up", "up press instance 1", false, 24);
-	animation_add_prefix(&arrow_base->animation, "confirm up", "up confirm instance 1", false, 24);
-
-	animation_add_prefix(&arrow_base->animation, "static right", "arrow static instance 3", false, 24);
-	animation_add_prefix(&arrow_base->animation, "pressed right", "right press instance 1", false, 24);
-	animation_add_prefix(&arrow_base->animation, "confirm right", "right confirm instance 1", false, 24);
-
-    //fnf_sprite* rarrow = clone_sprite(arrow_base);
-    animation_play(&arrow_base->animation, "redScroll");
-    //rarrow->animated = false;
-    load_sprite(arrow_base, "assets/images/NOTE_assets.png");
+    arrow_base = create_arrows();
 
     generate_static_notes();
 
@@ -236,6 +125,15 @@ void create_play_state(){
 	//healthBar.createFilledBar(, 0xFF66FF33);
 	add_sprite(health_bar);
 
+    dad_icon = create_icon(20, health_bar->y - 75, "dad");
+    add_sprite(dad_icon);
+
+    bf_icon = create_icon(20, health_bar->y - 75, "bf");
+    set_flip(bf_icon, X);
+    add_sprite(bf_icon);
+
+    add_health(0.0f);
+
     change_bpm(current_conductor, song.bpm);
     
     inst = make_audio();
@@ -248,6 +146,7 @@ void create_play_state(){
 
     play_audio(&inst);
     play_audio(&voices);
+
     //add_sprite(arrow_base);
 }
 
@@ -282,11 +181,38 @@ bool update_note(fnf_note* da_note){
 	}
     if(da_note->too_late)
     {
-        da_note->sprite->enabled = false;
+        //da_note->sprite->enabled = false;
     }
     return true;
 }
-void beat_hit();
+
+void beat_hit(int32 beat);
+void step_hit(int32 step);
+
+void update_bf(){
+    float elapsed = get_delta() * 0.001;
+
+    if (boyfriend->animation.currentAnimation->name[0] == 's')
+		bf_timer += elapsed;
+	else
+		bf_timer = 0;
+
+	if (dad->animation.currentAnimation->name[0] == 's')
+		dad_timer += elapsed;
+	if (dad_timer >= current_conductor->stepCrochet * 6.1f * 0.001){
+        animation_play(&dad->animation, "idle");
+		dad_timer = 0;
+	}
+        
+	//if (animation.curAnim.name.endsWith('miss') && animation.curAnim.finished)
+	//	playAnim('idle', true, false, 10);
+
+	//if (animation.curAnim.name == 'firstDeath' && animation.curAnim.finished)
+	//	playAnim('deathLoop');
+    //printf("%f\n", elapsed);
+
+}
+
 void draw_play_state(){
     static int32 oldStep = 0;
 	static int32 curStep = 0;
@@ -295,18 +221,35 @@ void draw_play_state(){
     oldStep = curStep;
     curStep = (int32)floorf(current_conductor->songPosition / current_conductor->stepCrochet);
 
+    update_bf();
     keyShit();
 
     for(int i=0; i < note_size; i++){
         fnf_note* da_note = &note_sprites[i];
+        update_note(&note_sprites[i]);
+        //if(!da_note->sprite->enabled) continue; //this line causes lag????
         int strmid = 50 + SWAG_WIDTH / 2;
         float ypos = (50 - (current_conductor->songPosition - note_sprites[i].strum_time) * (0.45 * song.speed));
 
         //if(da_note->sustain)
             //ypos += da_note->sprite->graphic.h / 2.0f;
 
-        if(da_note->was_good_hit && !da_note->must_press)
+        if(da_note->was_good_hit && !da_note->must_press && da_note->sprite->enabled){
             da_note->sprite->enabled = false;
+            
+            set_audio_volume(&voices, 1.0f);
+            switch(da_note->note_data % 4){
+                case 0:
+                    animation_play(&dad->animation, "singLEFT"); break;
+                case 1:
+                    animation_play(&dad->animation, "singDOWN"); break;
+                case 2:
+                    animation_play(&dad->animation, "singUP"); break;
+                case 3:
+                    animation_play(&dad->animation, "singRIGHT"); break;
+            }
+            dad_timer = 0;
+        }
 
         /*
         if (da_note->sustain
@@ -320,7 +263,17 @@ void draw_play_state(){
 		}
         */
         move_sprite(note_sprites[i].sprite, note_sprites[i].sprite->x, ypos);
-        update_note(&note_sprites[i]);
+
+        if (da_note->too_late || da_note->was_good_hit)
+		{
+			if (da_note->too_late && da_note->sprite->enabled)
+			{
+				add_health(-0.0475);
+                set_audio_volume(&voices, 0.0f);
+			}
+
+            da_note->sprite->enabled = false;
+		}
     }
 
     fnf_sprite* whosturn = must_hit_now ? boyfriend : dad;
@@ -337,19 +290,31 @@ void draw_play_state(){
     play_camera->x = lerp(play_camera->x, cam_follow.x, 0.04);
     play_camera->y = lerp(play_camera->y, cam_follow.y, 0.04);
 
-
-    if(curStep % 4 == 0 && oldStep != curStep)
-        beat_hit();
+    if(curStep >= 0 && oldStep != curStep)
+        step_hit(curStep);
 
     draw_all_sprites();
 
     draw_text(score_txt, health_bar_bg->x + health_bar_bg->w - 190.f, health_bar_bg->y + 30.f, 1.f);
 }
 
-void beat_hit(){
+void step_hit(int32 step){
+    static int32 beat = 0;
+    beat = step % 4;
+    if(beat == 0)
+        beat_hit(floor(step/4));
+}
+void beat_hit(int32 beat){
     static bool danceLeft = false;
 
-    animation_play(&boyfriend->animation, "idle");
+    //quick comparison
+    if(beat % 2 == 0){    
+        if(boyfriend->animation.currentAnimation->name[0] != 's')
+            animation_play(&boyfriend->animation, "idle");
+        if(dad->animation.currentAnimation->name[0] != 's')
+            animation_play(&dad->animation, "idle");
+    }
+
     danceLeft = !danceLeft;
         if(danceLeft)
             animation_play(&gf->animation, "danceLeft");
@@ -449,7 +414,6 @@ void generate_song(const char* path){
             fnf_note* da_note = generate_note(strum_time, note_type, must_hit, 0);
             add_sprite(da_note->sprite);
 
-
         }
     }
 }
@@ -492,33 +456,27 @@ void generate_static_notes(){
 }
 
 bool pressed_key(bool* keys){
-    for(int i=0; i<4; i++)
-        if(keys[i])
-            return true;
-    return false;
+    return (*(uint32_t*)keys) != 0x00000000;
 }
 
 void good_note_hit(fnf_note* da_note){
     if(da_note->was_good_hit) return;
     for(int i=0; i < 4; i++){
-        if(da_note->note_data == i){
+        if(da_note->note_data % 4 == i)
             animation_play(&playerStrums[i]->animation, directions_confirm[i]);
-            playerStrums[i]->offset.x = -20.f;
-            playerStrums[i]->offset.y = -20.f;
-        }
     }
 
     da_note->sprite->enabled = false;
     da_note->was_good_hit = true;
     switch(da_note->note_data % 4){
         case 0:
-    animation_play(&boyfriend->animation, "singLEFT"); break;
+        animation_play(&boyfriend->animation, "singLEFT"); break;
         case 1:
-    animation_play(&boyfriend->animation, "singDOWN"); break;
+        animation_play(&boyfriend->animation, "singDOWN"); break;
         case 2:
-    animation_play(&boyfriend->animation, "singUP"); break;
+        animation_play(&boyfriend->animation, "singUP"); break;
         case 3:
-    animation_play(&boyfriend->animation, "singRIGHT"); break;
+        animation_play(&boyfriend->animation, "singRIGHT"); break;
     }
 
     if(da_note->sustain) return;
@@ -534,7 +492,22 @@ void good_note_hit(fnf_note* da_note){
 	else if (note_diff > current_conductor->safeZoneOffset * 0.2)
 		score -= 150;
     
+    add_health(0.023f);
+    set_audio_volume(&voices, 1.0f);
+
     sprintf(score_txt, "Score: %i", score);
+}
+
+void add_health(float hp){
+    if(health > 2.0f)
+        health = 2.0f;
+    health += hp;
+    float ratio = health / 2.0f;
+    ratio *= 100.0f;
+    ratio = 100.0f + (-ratio);
+    move_sprite(dad_icon, health_bar->x + (health_bar->w * (ratio * 0.01f) + 26), dad_icon->y);
+    move_sprite(bf_icon, dad_icon->x + 250, dad_icon->y);
+    scale_sprite(health_bar, (1.0f / health), health_bar->scale.y);
 }
 
 void keyShit(){
@@ -552,17 +525,6 @@ void keyShit(){
         key_just_pressed(RIGHT)
     };
 
-    for(int i=0; i < 4; i++){
-        fnf_sprite* da_note = playerStrums[i];
-        bool confirm_note = strcmp(da_note->animation.currentAnimation->name, directions_confirm[i]) == 0;
-        if(press_array[i] && !confirm_note)
-            animation_play(&da_note->animation, directions_pressed[i]);
-        if (!hold_array[i]){
-            playerStrums[i]->offset.x = 0.f;
-            playerStrums[i]->offset.y = 0.f;
-            animation_play(&da_note->animation, directions[i]);}
-    }
-
     for(int i=0; i < note_size; i++){
         if(!pressed_key(press_array) && !pressed_key(hold_array)) break;
         
@@ -579,5 +541,19 @@ void keyShit(){
                 printf("note might have been pressed or something %i\n", da_note->note_data);
             }
         }
+    }    
+    if(pressed_key(press_array))
+        bf_timer = 0;
+    for(int i=0; i < 4; i++){
+        fnf_sprite* da_note = playerStrums[i];
+        bool confirm_note = strcmp(da_note->animation.currentAnimation->name, directions_confirm[i]) == 0;
+        if(press_array[i] && !confirm_note)
+            animation_play(&da_note->animation, directions_pressed[i]);
+        if (!hold_array[i]){
+            animation_play(&da_note->animation, directions[i]);}
     }
+
+    if (bf_timer > current_conductor->stepCrochet * 4.0f * 0.001f && (*(uint32_t*)hold_array) == 0x00000000)
+			if (boyfriend->animation.currentAnimation->name[0] == 's')
+				animation_play(&boyfriend->animation, "idle");
 }

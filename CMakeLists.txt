@@ -3,7 +3,7 @@ set(CMAKE_DEBUG_POSTFIX d)
 
 project("FNFC")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -O3 -lvorbis -lvorbisfile")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -lvorbis -lvorbisfile")
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_SOURCE_DIR}/")
 
 file(GLOB FNF_SOURCES

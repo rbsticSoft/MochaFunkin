@@ -81,10 +81,11 @@ fnf_shader create_shader_text(const char* vshader, const char* fshader){
 
     glLinkProgram(shader.program);
 
+    shader.shared = false;
     return shader;
 }
 
 fnf_shader create_shader()
 {
-    create_shader_text(vshaderd, fshaderd);
+    return create_shader_text(vshaderd, fshaderd);
 }

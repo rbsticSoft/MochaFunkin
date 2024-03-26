@@ -5,6 +5,7 @@
 
 typedef struct {
     int program;
+    char shared;
 } fnf_shader;
 
 fnf_shader create_shader_text(const char* vshader, const char* fshader);

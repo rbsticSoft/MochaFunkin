@@ -7,20 +7,6 @@
 
 typedef struct {
     float x,y;
-} fnf_vector;
-
-typedef struct {
-    float x,y,w,h;
-} fnf_rect;
-
-typedef enum {
-    X,
-    Y,
-    XY
-} fnf_axis_t;
-
-typedef struct {
-    float x,y;
     int32 w,h;
     struct {
         uint32 spr;
@@ -41,6 +27,7 @@ typedef struct {
     fnf_rect clip;
     fnf_shader shader;
     fnf_camera* camera;
+    fnf_axis_t flip;
     bool animated, enabled;
     fnf_animation_controller animation;
 } fnf_sprite;
@@ -58,6 +45,7 @@ fnf_sprite* move_sprite(fnf_sprite* sprite, float x, float y);
 fnf_sprite* center_sprite(fnf_sprite* sprite, fnf_axis_t axis);
 fnf_sprite* create_shape(fnf_sprite* sprite);
 fnf_sprite* set_color(fnf_sprite* sprite, uint32_t color);
+fnf_sprite* set_flip(fnf_sprite* sprite, fnf_axis_t axis);
 
 void draw_sprite(fnf_sprite *sprite);
 void delete_sprite(fnf_sprite *sprite);

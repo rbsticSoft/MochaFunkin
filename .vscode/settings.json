@@ -42,7 +42,15 @@
         "parson.h": "c",
         "controls.h": "c",
         "sprite.h": "c",
-        "sstream": "c"
+        "sstream": "c",
+        "spriteutil.h": "c",
+        "*.tcc": "c",
+        "chrono": "c",
+        "istream": "c",
+        "ostream": "c",
+        "*.inc": "c",
+        "shader.h": "c",
+        "numbers": "c"
       },
       "cmake.configureOnOpen": true,
       "C_Cpp.default.compilerPath": "C:\\msys64\\clang64\\bin\\clang.exe"

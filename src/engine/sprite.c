@@ -85,6 +85,7 @@ fnf_sprite* make_sprite(float x, float y, bool animated) {
     sprite->enabled = true;
     sprite->offset = (fnf_vector){0.0f, 0.0f};
     sprite->scroll = (fnf_vector){1.0f, 1.0f};
+    sprite->flip = NONE;
 
     if(animated){
         fnf_animation_collection* colptr = FNF_NEW(fnf_animation_collection);
@@ -95,6 +96,7 @@ fnf_sprite* make_sprite(float x, float y, bool animated) {
 
     sprite->color = 0xFFFFFFFF;
     sprite->shader = create_shader();
+    sprite->shader.shared = false;
 
     glGenTextures(1, &sprite->graphic.spr);
     glUseProgram(sprite->shader.program);
@@ -140,6 +142,11 @@ fnf_sprite* set_color(fnf_sprite* sprite, uint32_t color){
     glUseProgram(sprite->shader.program);
     glUniform3f(glGetUniformLocation(sprite->shader.program, "color"), sprite->r / 255.f, sprite->g / 255.f, sprite->b / 255.f);
 
+    return sprite;
+}
+
+fnf_sprite* set_flip(fnf_sprite* sprite, fnf_axis_t axis){
+    sprite->flip = axis;
     return sprite;
 }
 
@@ -189,8 +196,8 @@ fnf_sprite *load_sprite(fnf_sprite *sprite, const char *path)
 
     stbi_image_free(row_pointers);
 
-    scale_sprite(sprite, 1.f, 1.f);    
     resize_sprite(sprite, sprite->w, sprite->h);
+    scale_sprite(sprite, 1.f, 1.f);    
     return sprite;
 }
 
@@ -199,6 +206,7 @@ fnf_sprite* clone_sprite(fnf_sprite* sprite){
 
     memcpy(target, sprite, sizeof(fnf_sprite));
 
+    target->shader.shared = true;
     return target;
 }
 
@@ -257,6 +265,8 @@ void handle_animations(fnf_sprite* sprite){
     if(!sprite->animation.currentAnimation)
         return;
 
+    sprite->offset = sprite->animation.currentAnimation->offset;
+
     int32 playlistNum = sprite->animation.currentAnimation->playlist[sprite->animation.frameNum];
     if(playlistNum == -1)
     {
@@ -277,7 +287,6 @@ void handle_animations(fnf_sprite* sprite){
         frame->fw = frame->w;
         frame->fh = frame->h;
     }
-
     //float offsetX = (sprite->x + frame->fx);
     //float offsetY = (sprite->y + frame->fy);
     sprite->graphic.w = frame->w + frame->fw;
@@ -289,9 +298,8 @@ void handle_animations(fnf_sprite* sprite){
     uint32 dt = SDL_GetTicks() - sprite->animation.lastFrame;
 
     if(!sprite->animation.finished){
-        sprite->animation.frameNum++; //= ((SDL_GetTicks() / (1000 / sprite->animation.currentAnimation->fps)) % sprite->animation.currentAnimation->playlistSize + 1);//++;
+        sprite->animation.frameNum = ((SDL_GetTicks() - sprite->animation.lastFrame) * (sprite->animation.currentAnimation->fps) / 1000) % sprite->animation.currentAnimation->playlistSize + 1; //= ((SDL_GetTicks() / (1000 / sprite->animation.currentAnimation->fps)) % sprite->animation.currentAnimation->playlistSize + 1);//++;
         //sprite->animation.frameNum = (int)floor(sprite->animation.currentAnimation->fps * SDL_GetTicks() / 1000) % sprite->animation.currentAnimation->playlistSize;
-        sprite->animation.lastFrame = SDL_GetTicks();
     }
 }
 
@@ -345,9 +353,11 @@ void draw_sprite(fnf_sprite* sprite) {
     xpos = sprite->x;
     ypos = sprite->y;
 
-    move_sprite(sprite, xpos, ypos);
-
-    scale_sprite(sprite, sprite->scale.x, sprite->scale.y);
+    // this interferes with something, but i am not sure what that thing is
+    //if(sprite->shader.shared){
+        move_sprite(sprite, xpos, ypos);
+        scale_sprite(sprite, sprite->scale.x, sprite->scale.y);
+    //}
 
     if(sprite->camera){
         float camx = (sprite->camera->x * sprite->scroll.x) - SCREEN_WIDTHF * 0.5f;

@@ -59,12 +59,14 @@ bool key_just_pressed(fnf_key_t key){
     return keyed;
 }
 
+static uint32_t dt;
+
 void start_fnfc(){
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER);
     SDL_Window* win = SDL_CreateWindow("Friday Night Funkin'", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
@@ -72,7 +74,7 @@ void start_fnfc(){
 
     SDL_GL_CreateContext(win);
 
-    gladLoadGL();
+    gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
@@ -93,6 +95,7 @@ void start_fnfc(){
 
     while(close){
         SDL_Event e;
+        uint32_t start = SDL_GetTicks();
         while(SDL_PollEvent(&e)){
             switch(e.type){
                 SDLK_UP;
@@ -119,12 +122,22 @@ void start_fnfc(){
         //printf("%f\n",conductor.songPosition);
         get_curState()->draw();
         SDL_GL_SwapWindow(win);
-        SDL_Delay(1000 / 60);
+
+        uint32_t end = SDL_GetTicks();
+        dt = end - start;
+
+        if (dt < (1000 / 60))
+            SDL_Delay((1000 / 60) - dt);
         frames_elapsed++;
     }
     printf("Errors: %d\n", glGetError());
     
+    get_curState()->uninit();
     uninit_audio();
     SDL_DestroyWindow(win);
     SDL_Quit();
+}
+
+inline uint32 get_delta(){
+    return dt;
 }
