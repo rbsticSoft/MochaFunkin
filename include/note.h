@@ -5,7 +5,7 @@
 typedef struct {
     float strum_time;
     char note_data;
-    bool must_press, will_miss, was_good_hit, can_be_hit, too_late, sustain, dead;
+    bool must_press, will_miss, was_good_hit, can_be_hit, too_late, sustain, alt;
     fnf_sprite* sprite;
 } fnf_note;
 

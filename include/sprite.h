@@ -20,7 +20,6 @@ typedef struct {
     };
     struct {
         unsigned int VAO,VBO,EBO;
-        
         float vertices[20];
     } gl;
     fnf_vector scale, offset, scroll;
@@ -45,6 +44,7 @@ fnf_sprite* move_sprite(fnf_sprite* sprite, float x, float y);
 fnf_sprite* center_sprite(fnf_sprite* sprite, fnf_axis_t axis);
 fnf_sprite* create_shape(fnf_sprite* sprite);
 fnf_sprite* set_color(fnf_sprite* sprite, uint32_t color);
+fnf_sprite* set_alpha(fnf_sprite* sprite, float alpha);
 fnf_sprite* set_flip(fnf_sprite* sprite, fnf_axis_t axis);
 
 void draw_sprite(fnf_sprite *sprite);

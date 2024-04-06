@@ -21,8 +21,10 @@ typedef struct {
 FNF_CREATE_STATE(title_state);
 FNF_CREATE_STATE(play_state);
 //FNF_CREATE_STATE(story_menu_state);
-//FNF_CREATE_STATE(freeplay_state);
-//FNF_CREATE_STATE(main_menu_state);
+FNF_CREATE_STATE(freeplay_state);
+FNF_CREATE_STATE(main_menu_state);
+
+extern char* load_song_name;
 
 bool add_sprite(fnf_sprite* sprite);
 bool switch_state(fnf_state* state);

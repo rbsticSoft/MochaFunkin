@@ -7,12 +7,15 @@
 #include "font.h"
 #include "spriteutil.h"
 #include "engine.h"
+#include "math_fnf.h"
+#include "stage.h"
 
 #include <math.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
+#include <ctype.h>
 
 #define SWAG_WIDTH (160.f*0.7f)
 
@@ -30,19 +33,20 @@ fnf_audio inst;
 fnf_audio voices;
 
 fnf_song song;
+fnf_stage_t stage;
 
 bool hit_sections[256];
 
-const char* load_song_name = "pico";
+char* load_song_name = NULL;
 const char* difficulty = "hard";
 char score_txt[32] = "Score: 0";
 
 int score = 0;
 float health = 1.0f;
-bool must_hit_now = false;
 
 bool bring_to_front(fnf_sprite** index, fnf_sprite** end);
 int count_notes();
+void song_info();
 void generate_song(const char* path);
 fnf_note* generate_note(float strum_time, int note_type, int must_hit, bool sus_time);
 void generate_static_notes();
@@ -58,18 +62,22 @@ fnf_sprite* dad, *gf, *boyfriend;
 fnf_sprite* dad_icon, *bf_icon;
 float bf_timer, dad_timer;
 
-float lerp(float a, float b, float ratio)
-{
-    return a + ratio * (b - a);
-}
-
 void create_play_state(){
+    health = 1.0f;
+    score = 0.0f;
+    note_size = 0;
+
+    char path[255];
+    sprintf(path, "assets/data/%s/%s-%s.json", load_song_name, load_song_name, difficulty);
+    chart = json_parse_file(path);
+    song_info();
+
     play_camera = make_camera();
     hud_camera = make_camera();
 
     play_camera->zoom = 0.9f;
 
-    create_stage("stage", play_camera);
+    create_stage(stage, play_camera);
 
     gf = make_sprite(400, 130, true);
     gf->scroll = (fnf_vector){0.95f, 0.95f};
@@ -87,21 +95,24 @@ void create_play_state(){
     animation_play(&gf->animation, "danceLeft");
     add_sprite(gf);
 
-    boyfriend = create_character(770, 450, "bf");
+
+    boyfriend = create_character(770, 450, song.bf);
     boyfriend->camera = play_camera;
     add_sprite(boyfriend);
 
-    dad = create_character(100, 100, "dad");
+    dad = create_character(100, 100, song.dad);
     dad->camera = play_camera;
     add_sprite(dad);
 
-    arrow_base = create_arrows();
+    if(!arrow_base)
+        arrow_base = create_arrows();
+
 
     generate_static_notes();
-
-    char path[255];
-    sprintf(path, "assets/data/%s/%s-%s.json", load_song_name, load_song_name, difficulty);
+    
     generate_song(path);
+
+
     //fnf_sprite** sprarray = &get_sprites()[7];
     //uint16 sprarray_size = *get_sprites_size();
     //bring_to_front(sprarray, &sprarray[sprarray_size]);
@@ -120,15 +131,15 @@ void create_play_state(){
 
 	health_bar = make_sprite(health_bar_bg->x + 4, health_bar_bg->y + 4, false);
     create_shape(health_bar);
-    resize_sprite(health_bar, (health_bar_bg->w - 8) * 0.5f, health_bar_bg->h - 8);
+    resize_sprite(health_bar, (health_bar_bg->w - 8), health_bar_bg->h - 8);
     set_color(health_bar, 0xFF0000FF);
 	//healthBar.createFilledBar(, 0xFF66FF33);
 	add_sprite(health_bar);
 
-    dad_icon = create_icon(20, health_bar->y - 75, "dad");
+    dad_icon = create_icon(20, health_bar->y - 75, song.dad);
     add_sprite(dad_icon);
 
-    bf_icon = create_icon(20, health_bar->y - 75, "bf");
+    bf_icon = create_icon(20, health_bar->y - 75, song.bf);
     set_flip(bf_icon, X);
     add_sprite(bf_icon);
 
@@ -238,16 +249,32 @@ void draw_play_state(){
             da_note->sprite->enabled = false;
             
             set_audio_volume(&voices, 1.0f);
-            switch(da_note->note_data % 4){
+            switch(da_note->note_data % 4) {
                 case 0:
-                    animation_play(&dad->animation, "singLEFT"); break;
+                    animation_play(&dad->animation, "singLEFT");
+                    break;
                 case 1:
-                    animation_play(&dad->animation, "singDOWN"); break;
+                    animation_play(&dad->animation, "singDOWN");
+                    break;
                 case 2:
-                    animation_play(&dad->animation, "singUP"); break;
+                    animation_play(&dad->animation, "singUP");
+                    break;
                 case 3:
-                    animation_play(&dad->animation, "singRIGHT"); break;
+                    animation_play(&dad->animation, "singRIGHT");
+                    break;
             }
+            if(da_note->alt)
+                    switch(da_note->note_data % 4){
+                        case 0:
+                            animation_play(&dad->animation, "singLEFT-alt"); break;
+                        case 1:
+                            animation_play(&dad->animation, "singDOWN-alt"); break;
+                        case 2:
+                            animation_play(&dad->animation, "singUP-alt"); break;
+                        case 3:
+                            animation_play(&dad->animation, "singRIGHT-alt"); break;
+                    }
+
             dad_timer = 0;
         }
 
@@ -276,17 +303,11 @@ void draw_play_state(){
 		}
     }
 
-    fnf_sprite* whosturn = must_hit_now ? boyfriend : dad;
 
-    if(hit_sections[curStep/16]){
-        cam_follow.x = ((boyfriend->graphic.w) * 0.5f) - 100;
-        cam_follow.y = ((boyfriend->graphic.h) * 0.5f) - 100;
-    }
-    else{
-        cam_follow.x = 400 + (dad->graphic.w / 2);
-        cam_follow.y = (dad->graphic.w / 2);
-    }
-
+    //cam_follow.x = 0;
+    //cam_follow.y = 0;
+    //cam_follow.x -= (SCREEN_WIDTHF * 0.5f);
+    //cam_follow.y -= (SCREEN_HEIGHTF * 0.5f);
     play_camera->x = lerp(play_camera->x, cam_follow.x, 0.04);
     play_camera->y = lerp(play_camera->y, cam_follow.y, 0.04);
 
@@ -303,6 +324,16 @@ void step_hit(int32 step){
     beat = step % 4;
     if(beat == 0)
         beat_hit(floor(step/4));
+
+    if(!hit_sections[step/16]){
+        cam_follow.x = (boyfriend->x + boyfriend->graphic.w * 0.5f) - 100;
+        cam_follow.y = (boyfriend->y + boyfriend->graphic.h * 0.5f) - 100;
+    }
+    else{
+        cam_follow.x = (dad->x + dad->graphic.w * 0.5f) + 150;
+        cam_follow.y = (dad->y + dad->graphic.h * 0.5f) - 100;
+    }
+
 }
 void beat_hit(int32 beat){
     static bool danceLeft = false;
@@ -323,6 +354,13 @@ void beat_hit(int32 beat){
 }
 
 void uninit_play_state(){
+    stop_audio(&inst);
+    stop_audio(&voices);
+
+    delete_audio(&inst);
+    delete_audio(&voices);
+
+    FNF_DELETE(note_sprites);
     free_sprites();
     kill_sprites();
 }
@@ -344,6 +382,31 @@ bool bring_to_front(fnf_sprite** index, fnf_sprite** end) {
     return true;
 }
 
+void song_info(){
+    JSON_Object* json_song = json_value_get_object(chart);
+    JSON_Array* notes = json_object_dotget_array(json_song, "song.notes");
+    const char* song_name = json_object_dotget_string(json_song, "song.song");
+    song.bpm = json_object_dotget_number(json_song, "song.bpm");
+    song.speed = json_object_dotget_number(json_song, "song.speed");
+    strcpy(song.name, song_name);
+    strcpy(song.bf, json_object_dotget_string(json_song, "song.player1"));
+    strcpy(song.dad, json_object_dotget_string(json_song, "song.player2"));
+
+    if(!strcmp(load_song_name, "bopeebo") || !strcmp(load_song_name, "fresh") || !strcmp(load_song_name, "dadbattle"))
+        stage = STAGE;
+    if(!strcmp(load_song_name, "spookeez") || !strcmp(load_song_name, "south") || !strcmp(load_song_name, "monster"))
+        stage = SPOOKY;
+    if(!strcmp(load_song_name, "pico") || !strcmp(load_song_name, "philly") || !strcmp(load_song_name, "blammed"))
+        stage = PHILLY;
+    if(!strcmp(load_song_name, "satin-panties") || !strcmp(load_song_name, "high") || !strcmp(load_song_name, "milf"))
+        stage = LIMO;
+    if(!strcmp(load_song_name, "cocoa") || !strcmp(load_song_name, "eggnog") || !strcmp(load_song_name, "winter-horrorland"))
+        stage = MALL;
+    if(!strcmp(load_song_name, "senpai") || !strcmp(load_song_name, "roses") || !strcmp(load_song_name, "thorns"))
+        stage = SCHOOL;
+    if(!strcmp(load_song_name, "ugh") || !strcmp(load_song_name, "guns") || !strcmp(load_song_name, "stress"))
+        stage = TANK;
+}
 int count_notes(){
     int size = 0;
     JSON_Object *root_object = json_value_get_object(chart);
@@ -368,15 +431,15 @@ int count_notes(){
 }
 
 void generate_song(const char* path){
-    chart = json_parse_file(path);
-
     JSON_Object* json_song = json_value_get_object(chart);
     JSON_Array* notes = json_object_dotget_array(json_song, "song.notes");
     const char* song_name = json_object_dotget_string(json_song, "song.song");
     song.bpm = json_object_dotget_number(json_song, "song.bpm");
     song.speed = json_object_dotget_number(json_song, "song.speed");
-    memcpy(song.name, song_name, 254);
-    song.name[255] = 0;
+    strcpy(song.name, song_name);
+    strcpy(song.bf, json_object_dotget_string(json_song, "song.player1"));
+    strcpy(song.dad, json_object_dotget_string(json_song, "song.player2"));
+    //song.name[255] = 0;
 
     assert(notes != NULL);
 
@@ -394,6 +457,9 @@ void generate_song(const char* path){
             int note_type = json_array_get_number(note_data, 1);
             int sus_time = json_array_get_number(note_data, 2);
             int must_hit = json_object_get_boolean(section, "mustHitSection");
+            int alt = json_object_get_boolean(section, "altAnim") != -1;
+
+
             hit_sections[i] = must_hit;
 
             if(sus_time){
@@ -401,6 +467,8 @@ void generate_song(const char* path){
 
                 for(int sus=0; sus<sus_time; sus++){
                     fnf_note* da_note = generate_note(strum_time + (current_conductor->stepCrochet * sus) + current_conductor->stepCrochet, note_type, must_hit, 1);
+                    da_note->alt = alt;
+
                     const char** sus_type = sus == sus_time-1 ? directions_sus_end : directions_sus;
 
                     if(sus != sus_time-1)
@@ -412,6 +480,8 @@ void generate_song(const char* path){
             }
 
             fnf_note* da_note = generate_note(strum_time, note_type, must_hit, 0);
+            da_note->alt = alt;
+
             add_sprite(da_note->sprite);
 
         }
@@ -498,16 +568,36 @@ void good_note_hit(fnf_note* da_note){
     sprintf(score_txt, "Score: %i", score);
 }
 
+void bf_death(){
+    switch_state(&play_state);
+}
+
 void add_health(float hp){
+    health += hp;
+    float norm_health = health / 2.0f;
+
     if(health > 2.0f)
         health = 2.0f;
-    health += hp;
+    if(health < 0.0f) {
+        health = 0.0f;
+        bf_death();
+    }
+
+    bf_icon->animation.frameNum = 0;
+    dad_icon->animation.frameNum = 0;
+
+    if(norm_health < 0.2f)
+        bf_icon->animation.frameNum = 1;
+    if(norm_health > 0.8f)
+        dad_icon->animation.frameNum = 1;
+
     float ratio = health / 2.0f;
     ratio *= 100.0f;
-    ratio = 100.0f + (-ratio);
-    move_sprite(dad_icon, health_bar->x + (health_bar->w * (ratio * 0.01f) + 26), dad_icon->y);
-    move_sprite(bf_icon, dad_icon->x + 250, dad_icon->y);
-    scale_sprite(health_bar, (1.0f / health), health_bar->scale.y);
+    ratio = remap(ratio, 0.0f, 100.0f, 100.0f, 0.0f);
+
+    move_sprite(bf_icon, ((health_bar->w * 0.5f) + health_bar->x + (health_bar->w * ratio * 0.01f) - 26) - (health_bar->w * 0.5f), dad_icon->y);
+    move_sprite(dad_icon, (health_bar->w * 0.5f) + health_bar->x + (health_bar->w * ratio * 0.01f) - (150 - 26) - (health_bar->w * 0.5f), dad_icon->y);
+    scale_sprite(health_bar, 1.0f - norm_health , health_bar->scale.y);
 }
 
 void keyShit(){

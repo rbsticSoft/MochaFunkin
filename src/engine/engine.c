@@ -6,7 +6,7 @@
 #include "font.h"
 #include "conductor.h"
 #include "controls.h"
-#include "glad/glad.h"
+#include <glad/glad.h>
 #include <assert.h>
 
 #define SDL_MAIN_HANDLED
@@ -66,7 +66,7 @@ void start_fnfc(){
     SDL_Window* win = SDL_CreateWindow("Friday Night Funkin'", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
@@ -74,16 +74,15 @@ void start_fnfc(){
 
     SDL_GL_CreateContext(win);
 
-    gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
+    gladLoadGL();
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     glEnable(GL_SCISSOR_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+    
     switch_state(&title_state);
-
     bool close = true;
 
     init_audio();

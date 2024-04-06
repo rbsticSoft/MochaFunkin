@@ -39,12 +39,6 @@ typedef int64_t int64;
 #define FNF_DELETE(x) free(x)
 #define FNF_ZERO(x, y)  memset(x, 0, y);
 
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 720
-
-#define SCREEN_WIDTHF 1280.f
-#define SCREEN_HEIGHTF 720.f
-
 typedef struct {
     float x,y;
 } fnf_vector;

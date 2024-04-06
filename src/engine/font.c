@@ -197,7 +197,11 @@ void draw_text(const unsigned char *text, float x, float y, float scale)
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void draw_alphabet(const unsigned char *text, float x, float y)
+
+/**
+ * This code sucks. Refactoring considered.
+*/
+void draw_alphabet(const unsigned char *text, float x, float y, float alpha)
 {
     int thing = 0;
     int lastone = 0;
@@ -210,12 +214,13 @@ void draw_alphabet(const unsigned char *text, float x, float y)
         prefix[0] = toupper(text[i]);
         prefix[1] = 0x0;
 
-        if(prefix[0] == ' '){thing = 40; continue;}
+        if(prefix[0] == ' ' || prefix[0] == '-'){thing = 40; continue;}
         animation_play(&alphabet_base->animation, prefix);
         if(!lastone)
             xpos = (x);
         else
             xpos = (lastonex + lastonew) + thing;
+        set_alpha(alphabet_base, alpha);
         move_sprite(alphabet_base, xpos, y);
         draw_sprite(alphabet_base);
         thing = 0;

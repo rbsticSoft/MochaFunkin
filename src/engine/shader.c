@@ -21,7 +21,7 @@ static const char* vshaderd = glsl(
 
     void main() {
         fragCoord = vertexCoord;
-        gl_Position = projection * view * model * camera * vec4(vertexPos, 1.0f); // projection * * model 
+        gl_Position = projection * view * model * camera * vec4(vertexPos, 1.0f);
         SColor = color;
     }
 );
@@ -29,6 +29,7 @@ static const char* vshaderd = glsl(
 static const char* fshaderd = glsl(
     uniform sampler2D bitmap;
     uniform vec2 ScreenResolution;
+    uniform float alpha;
 
     out vec4 FragColor;
     in vec2 fragCoord;
@@ -36,7 +37,8 @@ static const char* fshaderd = glsl(
 
     void main() {    
         vec2 uv = fragCoord / vec2(textureSize(bitmap, 0));
-        FragColor = texture(bitmap, uv);
+        vec4 tex = texture(bitmap, uv);
+        FragColor = vec4(tex.rgb, alpha * tex.a);
     }
 );
 

@@ -56,7 +56,7 @@ void draw_title_state(){
     oldStep = curStep;
 
     if(key_just_pressed(ENTER))
-        switch_state(&play_state);
+        switch_state(&main_menu_state);
     if(key_just_pressed(LEFT))
         animation_play(&spr->animation, "gf dance l");
     if(key_just_pressed(RIGHT))

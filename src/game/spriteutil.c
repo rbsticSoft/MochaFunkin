@@ -1,6 +1,7 @@
 #include "spriteutil.h"
 #include "states.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 fnf_sprite* create_character(float x, float y, const char* name){
     fnf_sprite* character = make_sprite(x, y, true);
@@ -13,7 +14,40 @@ fnf_sprite* create_character(float x, float y, const char* name){
         animation_add_prefix(&character->animation, "singDOWN", "BF NOTE DOWN", false, 24);
         animation_add_prefix(&character->animation, "singUP", "BF NOTE UP", false, 24);
         animation_add_prefix(&character->animation, "singRIGHT", "BF NOTE RIGHT", false, 24);
+
+        animation_add_prefix(&character->animation, "singLEFTmiss", "BF NOTE LEFT MISS", false, 24);
+        animation_add_prefix(&character->animation, "singDOWNmiss", "BF NOTE DOWN MISS", false, 24);
+        animation_add_prefix(&character->animation, "singUPmiss", "BF NOTE UP MISS", false, 24);
+        animation_add_prefix(&character->animation, "singRIGHTmiss", "BF NOTE RIGHT MISS", false, 24);
+
+        animation_add_prefix(&character->animation, "firstDeath", "BF dies", false, 24);
+        animation_add_prefix(&character->animation, "deathLoop", "BF Dead Loop", false, 24);
+        animation_add_prefix(&character->animation, "deathConfirm", "BF Dead confirm", false, 24);
         
+        animation_play(&character->animation, "idle");
+    }
+
+    if(strcmp(name, "bf-car") == 0){
+        load_sprite(character, "assets/shared/images/characters/bfCar.png");
+        animation_load_atlas(&character->animation, "assets/shared/images/characters/bfCar.xml");
+        animation_add_prefix(&character->animation, "idle", "BF idle dance", false, 24);
+        animation_add_prefix(&character->animation, "singLEFT", "BF NOTE LEFT", false, 24);
+        animation_add_prefix(&character->animation, "singDOWN", "BF NOTE DOWN", false, 24);
+        animation_add_prefix(&character->animation, "singUP", "BF NOTE UP", false, 24);
+        animation_add_prefix(&character->animation, "singRIGHT", "BF NOTE RIGHT", false, 24);
+
+        animation_play(&character->animation, "idle");
+    }
+
+    if(strcmp(name, "bf-christmas") == 0){
+        load_sprite(character, "assets/shared/images/characters/bfChristmas.png");
+        animation_load_atlas(&character->animation, "assets/shared/images/characters/bfChristmas.xml");
+        animation_add_prefix(&character->animation, "idle", "BF idle dance", false, 24);
+        animation_add_prefix(&character->animation, "singLEFT", "BF NOTE LEFT", false, 24);
+        animation_add_prefix(&character->animation, "singDOWN", "BF NOTE DOWN", false, 24);
+        animation_add_prefix(&character->animation, "singUP", "BF NOTE UP", false, 24);
+        animation_add_prefix(&character->animation, "singRIGHT", "BF NOTE RIGHT", false, 24);
+
         animation_play(&character->animation, "idle");
     }
 
@@ -59,6 +93,60 @@ fnf_sprite* create_character(float x, float y, const char* name){
         animation_add_prefix(&character->animation, "singDOWN", "Pico Down Note", false, 24);
         animation_add_prefix(&character->animation, "singUP", "pico Up note", false, 24);
         animation_add_prefix(&character->animation, "singRIGHT", "Pico Note Right", false, 24);
+        animation_play(&character->animation, "idle");
+
+        set_flip(character, X);
+
+        move_sprite(character, character->x, character->y + 300);
+    }
+
+    if(strcmp(name, "mom-car") == 0){
+        load_sprite(character, "assets/shared/images/characters/momCar.png");
+        animation_load_atlas(&character->animation, "assets/shared/images/characters/momCar.xml");
+        animation_add_prefix(&character->animation, "idle", "Mom Idle", false, 24);
+        animation_add_prefix(&character->animation, "singLEFT", "Mom Left Pose", false, 24);
+        animation_add_prefix(&character->animation, "singDOWN", "MOM DOWN POSE", false, 24);
+        animation_add_prefix(&character->animation, "singUP", "Mom Up Pose", false, 24);
+        animation_add_prefix(&character->animation, "singRIGHT", "Mom Pose Left", false, 24);
+        animation_play(&character->animation, "idle");
+    }
+
+    if(strcmp(name, "parents-christmas") == 0){
+        load_sprite(character, "assets/shared/images/characters/mom_dad_christmas_assets.png");
+        animation_load_atlas(&character->animation, "assets/shared/images/characters/mom_dad_christmas_assets.xml");
+        animation_add_prefix(&character->animation, "idle", "Parent Christmas Idle", false, 24);
+        animation_add_prefix(&character->animation, "singLEFT", "Parent Left Note Dad", false, 24);
+        animation_add_prefix(&character->animation, "singDOWN", "Parent Down Note Dad", false, 24);
+        animation_add_prefix(&character->animation, "singUP", "Parent Up Note Dad", false, 24);
+        animation_add_prefix(&character->animation, "singRIGHT", "Parent Right Note Dad", false, 24);
+
+        animation_add_prefix(&character->animation, "singLEFT-alt", "Parent Left Note Mom", false, 24);
+        animation_add_prefix(&character->animation, "singDOWN-alt", "Parent Down Note Mom", false, 24);
+        animation_add_prefix(&character->animation, "singUP-alt", "Parent Up Note Mom", false, 24);
+        animation_add_prefix(&character->animation, "singRIGHT-alt", "Parent Right Note Mom", false, 24);
+        animation_play(&character->animation, "idle");
+    }
+
+    if(strcmp(name, "monster-christmas") == 0){
+        move_sprite(character, character->x, character->y + 100);
+        load_sprite(character, "assets/shared/images/characters/monsterChristmas.png");
+        animation_load_atlas(&character->animation, "assets/shared/images/characters/monsterChristmas.xml");
+        animation_add_prefix(&character->animation, "idle", "monster idle", false, 24);
+        animation_add_prefix(&character->animation, "singUP", "monster up note", false, 24);
+        animation_add_prefix(&character->animation, "singDOWN", "monster down", false, 24);
+        animation_add_prefix(&character->animation, "singLEFT", "Monster Right note", false, 24);
+        animation_add_prefix(&character->animation, "singRIGHT", "Monster left note", false, 24);
+        animation_play(&character->animation, "idle");
+    }
+
+    if(strcmp(name, "tankman") == 0){
+        load_sprite(character, "assets/shared/images/characters/tankmanCaptain.png");
+        animation_load_atlas(&character->animation, "assets/shared/images/characters/tankmanCaptain.xml");
+        animation_add_prefix(&character->animation, "idle", "Tankman Idle Dance instance 1", false, 24);
+        animation_add_prefix(&character->animation, "singLEFT", "Tankman Right Note instance 1", false, 24);
+        animation_add_prefix(&character->animation, "singDOWN", "Tankman DOWN note instance 1", false, 24);
+        animation_add_prefix(&character->animation, "singUP", "Tankman UP note instance 1", false, 24);
+        animation_add_prefix(&character->animation, "singRIGHT", "Tankman Note Left instance 1", false, 24);
         animation_play(&character->animation, "idle");
 
         set_flip(character, X);
@@ -173,79 +261,113 @@ fnf_sprite* create_arrows(){
     return arrow_base;
 }
 
-void create_stage(const char* name, fnf_camera* play_camera){
-    if(strcmp(name, "stage") == 0){
-        fnf_sprite* stage_back = make_sprite(-600, -200, false);
-        stage_back->camera = play_camera;
-        stage_back->scroll.x = 0.9f;
-        stage_back->scroll.x = 0.9f;
-        load_sprite(stage_back, "assets/shared/images/stageback.png");
+void create_stage(fnf_stage_t stage, fnf_camera* play_camera) {
+    switch(stage){
+        case STAGE: {
+            fnf_sprite *stage_back = make_sprite(-600, -200, false);
+            stage_back->camera = play_camera;
+            stage_back->scroll.x = 0.9f;
+            stage_back->scroll.x = 0.9f;
+            load_sprite(stage_back, "assets/shared/images/stageback.png");
 
-        fnf_sprite* stage_front = make_sprite(-650, 600, false);
-        stage_front->camera = play_camera;
-        stage_front->scroll.x = 0.9f;
-        stage_front->scroll.x = 0.9f;
-        //scale_sprite(stage_front, 1.1f, 1.0f);
-        load_sprite(stage_front, "assets/shared/images/stagefront.png");
-        resize_sprite(stage_front, stage_front->w * 1.1, stage_front->h);
+            fnf_sprite *stage_front = make_sprite(-650, 600, false);
+            stage_front->camera = play_camera;
+            stage_front->scroll.x = 0.9f;
+            stage_front->scroll.x = 0.9f;
+            //scale_sprite(stage_front, 1.1f, 1.0f);
+            load_sprite(stage_front, "assets/shared/images/stagefront.png");
+            resize_sprite(stage_front, stage_front->w * 1.1, stage_front->h);
 
-        fnf_sprite* stage_curtains = make_sprite(-500, -300, false);
-        stage_curtains->camera = play_camera;
-        stage_curtains->scroll.x = 1.3f;
-        stage_curtains->scroll.y = 1.3f;
-        scale_sprite(stage_curtains, 0.9f, 1.0f);
-        load_sprite(stage_curtains, "assets/shared/images/stagecurtains.png");
-        resize_sprite(stage_curtains, stage_curtains->w * 0.9, stage_curtains->h);
+            fnf_sprite *stage_curtains = make_sprite(-500, -300, false);
+            stage_curtains->camera = play_camera;
+            stage_curtains->scroll.x = 1.3f;
+            stage_curtains->scroll.y = 1.3f;
+            scale_sprite(stage_curtains, 0.9f, 1.0f);
+            load_sprite(stage_curtains, "assets/shared/images/stagecurtains.png");
+            resize_sprite(stage_curtains, stage_curtains->w * 0.9, stage_curtains->h);
 
-        add_sprite(stage_back);
-        add_sprite(stage_front);
-        add_sprite(stage_curtains);
-    }
-    if(strcmp(name, "spooky") == 0){
-		fnf_sprite* halloween_bg = make_sprite(-200, -100, true);
-        halloween_bg->camera = play_camera;
+            add_sprite(stage_back);
+            add_sprite(stage_front);
+            add_sprite(stage_curtains);
+            break;
+        }
+        case SPOOKY: {
+            fnf_sprite *halloween_bg = make_sprite(-200, -100, true);
+            halloween_bg->camera = play_camera;
 
-		load_sprite(halloween_bg, "assets/week2/images/halloween_bg.png");
-        animation_load_atlas(&halloween_bg->animation, "assets/week2/images/halloween_bg.xml");
+            load_sprite(halloween_bg, "assets/week2/images/halloween_bg.png");
+            animation_load_atlas(&halloween_bg->animation, "assets/week2/images/halloween_bg.xml");
 
-        animation_add_prefix(&halloween_bg->animation, "idle", "halloweem bg0", true, 30);
-        animation_add_prefix(&halloween_bg->animation, "idle", "halloweem bg lightning strike", false, 24);
-		animation_play(&halloween_bg->animation, "idle");
+            animation_add_prefix(&halloween_bg->animation, "idle", "halloweem bg0", true, 30);
+            animation_add_prefix(&halloween_bg->animation, "idle", "halloweem bg lightning strike", false, 24);
+            animation_play(&halloween_bg->animation, "idle");
 
-		add_sprite(halloween_bg);
-    }
+            add_sprite(halloween_bg);
+            break;
+        }
+        case PHILLY: {
+            fnf_sprite *bg = make_sprite(-100, 0, false);
+            load_sprite(bg, "assets/week3/images/philly/sky.png");
+            bg->scroll = (fnf_vector) {0.1f, 0.1f};
+            add_sprite(bg);
 
-    if(strcmp(name, "philly") == 0){				
-        fnf_sprite* bg = make_sprite(-100, 0, false);
-        load_sprite(bg, "assets/week3/images/philly/sky.png");
-        bg->scroll = (fnf_vector){0.1f, 0.1f};
-		add_sprite(bg);
+            fnf_sprite *city = make_sprite(-10, 0, false);
+            load_sprite(city, "assets/week3/images/philly/city.png");
+            city->scroll = (fnf_vector) {0.3f, 0.3f};
+            resize_sprite(city, city->w * 0.85f, city->h);
+            add_sprite(city);
 
-		fnf_sprite* city = make_sprite(-10, 0, false);
-        load_sprite(city, "assets/week3/images/philly/city.png");
-		city->scroll = (fnf_vector){0.3f, 0.3f};
-		resize_sprite(city, city->w * 0.85f, city->h);
-		add_sprite(city);
+            fnf_sprite *street_behind = make_sprite(-40, 50, false);
+            load_sprite(street_behind, "assets/week3/images/philly/behindTrain.png");
+            add_sprite(street_behind);
 
-		fnf_sprite* street_behind = make_sprite(-40, 50, false);
-        load_sprite(street_behind, "assets/week3/images/philly/behindTrain.png");
-		add_sprite(street_behind);
+            //fnf_sprite*	philly_train = make_sprite(2000, 360, false);
+            //load_sprite(philly_train, "assets/week3/images/philly/train.png");
+            //add_sprite(philly_train);
 
-		//fnf_sprite*	philly_train = make_sprite(2000, 360, false); 
-        //load_sprite(philly_train, "assets/week3/images/philly/train.png");
-		//add_sprite(philly_train);
+            // var cityLights:FlxSprite = new FlxSprite().loadGraphic(AssetPaths.win0.png);
 
-				// var cityLights:FlxSprite = new FlxSprite().loadGraphic(AssetPaths.win0.png);
+            fnf_sprite *street = make_sprite(-40, street_behind->y, false);
+            load_sprite(street, "assets/week3/images/philly/street.png");
+            add_sprite(street);
 
-		fnf_sprite* street = make_sprite(-40, street_behind->y, false);
-        load_sprite(street, "assets/week3/images/philly/street.png");
-		add_sprite(street);
+            play_camera->zoom = 1.05f;
+            bg->camera = play_camera;
+            city->camera = play_camera;
+            street_behind->camera = play_camera;
+            //philly_train->camera = play_camera;
+            street->camera = play_camera;
+            break;
+        }
+        case LIMO: {
+            play_camera->zoom = 0.9f;
+            fnf_sprite *sky = make_sprite(-120, -50, false);
+            sky->scroll = (fnf_vector) {0.1f, 0.1f};
 
-        play_camera->zoom = 1.05f;
-        bg->camera = play_camera;
-        city->camera = play_camera;
-        street_behind->camera = play_camera;
-        //philly_train->camera = play_camera;
-        street->camera = play_camera;
+            load_sprite(sky, "assets/week4/images/limo/limoSunset.png");
+            add_sprite(sky);
+
+            fnf_sprite *limo = make_sprite(-200, 480, true);
+            limo->scroll = (fnf_vector) {0.4f, 0.4f};
+
+            load_sprite(limo, "assets/week4/images/limo/bgLimo.png");
+            animation_load_atlas(&limo->animation, "assets/week4/images/limo/bgLimo.xml");
+            animation_add_prefix(&limo->animation, "drive", "background limo pink", true, 24);
+            animation_play(&limo->animation, "drive");
+            add_sprite(limo);
+
+            sky->camera = play_camera;
+            limo->camera = play_camera;
+            break;
+        }
+        case MALL: {
+            break;
+        }
+        case SCHOOL: {
+            break;
+        }
+        case TANK: {
+            break;
+        }
     }
 }

@@ -5,10 +5,27 @@
 ALCdevice* device;
 ALCcontext* context;
 
+fnf_audio* select_menu = NULL;
+fnf_audio* back_menu = NULL;
+fnf_audio* accept_menu = NULL;
+
+
 void init_audio(){
     device = alcOpenDevice(NULL);
     context = alcCreateContext(device, NULL);
     alcMakeContextCurrent(context);
+
+    select_menu = FNF_NEW(fnf_audio);
+    back_menu = FNF_NEW(fnf_audio);
+    accept_menu = FNF_NEW(fnf_audio);
+
+    *select_menu = make_audio();
+    *back_menu = make_audio();
+    *accept_menu = make_audio();
+
+    load_audio(back_menu, "assets/sounds/cancelMenu.ogg");
+    load_audio(accept_menu, "assets/sounds/confirmMenu.ogg");
+    load_audio(select_menu, "assets/sounds/scrollMenu.ogg");
 }
 
 void uninit_audio(){
@@ -66,6 +83,13 @@ fnf_audio* play_audio(fnf_audio* audio){
     if(!audio) return NULL;
 
     alSourcePlay(audio->source);
+    return audio;
+}
+
+fnf_audio* stop_audio(fnf_audio* audio){
+    if(!audio) return NULL;
+
+    alSourceStop(audio->source);
     return audio;
 }
 

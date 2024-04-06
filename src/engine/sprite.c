@@ -103,6 +103,7 @@ fnf_sprite* make_sprite(float x, float y, bool animated) {
 
     glUniform2f(glGetUniformLocation(sprite->shader.program, "ScreenResolution"), SCREEN_WIDTHF, SCREEN_HEIGHTF);
     glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "projection"), 1, false, (float*)ortho);
+    set_alpha(sprite, 1.0f);
 
     return sprite;
 }
@@ -145,6 +146,11 @@ fnf_sprite* set_color(fnf_sprite* sprite, uint32_t color){
     return sprite;
 }
 
+fnf_sprite* set_alpha(fnf_sprite* sprite, float alpha){
+    glUniform1f(glGetUniformLocation(sprite->shader.program, "alpha"), alpha);
+    return sprite;
+}
+
 fnf_sprite* set_flip(fnf_sprite* sprite, fnf_axis_t axis){
     sprite->flip = axis;
     return sprite;
@@ -158,8 +164,8 @@ void delete_sprite(fnf_sprite* sprite) {
     glDeleteBuffers(1, &sprite->gl.VBO);
     glDeleteBuffers(1, &sprite->gl.EBO);
 
-    //if(sprite->animation)
-    //    FNF_DELETE(sprite->animation);
+    if(sprite->animated)
+        FNF_DELETE(sprite->animation.collection);
     FNF_DELETE(sprite);
 }
 
@@ -224,6 +230,7 @@ fnf_sprite* resize_sprite(fnf_sprite* sprite, uint16 w, uint16 h){
 fnf_sprite* scale_sprite(fnf_sprite* sprite, float x, float y){
     mat4 model = GLM_MAT4_IDENTITY_INIT;
     glm_scale(model, (vec3){x, y, 0.f});
+        
 
     sprite->scale.x = x;
     sprite->scale.y = y;
@@ -238,7 +245,11 @@ fnf_sprite* move_sprite(fnf_sprite* sprite, float x, float y)
     sprite->y = y;//; - (sprite->h);
 
     mat4 view = GLM_MAT4_IDENTITY_INIT;
-    glm_translate(view, (vec3){sprite->x + sprite->offset.x, sprite->y + sprite->offset.y, 0.0f});
+    
+    if(sprite->flip == X)
+        glm_translate(view, (vec3){((sprite->x+sprite->graphic.w) + sprite->offset.x), sprite->y + sprite->offset.y, 0.0f});
+    else
+        glm_translate(view, (vec3){sprite->x + sprite->offset.x, sprite->y + sprite->offset.y, 0.0f});
 
     glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "view"), 1, false, (float*)view);
 
@@ -266,7 +277,8 @@ void handle_animations(fnf_sprite* sprite){
         return;
 
     sprite->offset = sprite->animation.currentAnimation->offset;
-
+    if(sprite->flip == X)
+        sprite->offset.x = sprite->offset.x;
     int32 playlistNum = sprite->animation.currentAnimation->playlist[sprite->animation.frameNum];
     if(playlistNum == -1)
     {
@@ -289,8 +301,9 @@ void handle_animations(fnf_sprite* sprite){
     }
     //float offsetX = (sprite->x + frame->fx);
     //float offsetY = (sprite->y + frame->fy);
-    sprite->graphic.w = frame->w + frame->fw;
-    sprite->graphic.h = frame->h + frame->fh;
+    sprite->graphic.w = frame->w;
+    sprite->graphic.h = frame->h;
+    
     generateVertices(sprite->gl.vertices, 0, 0, (float)frame->fw, (float)frame->fh);
     generate2DVertices(sprite->gl.vertices, frame->x, frame->y, frame->w, frame->h);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(sprite->gl.vertices), sprite->gl.vertices);
@@ -359,17 +372,30 @@ void draw_sprite(fnf_sprite* sprite) {
         scale_sprite(sprite, sprite->scale.x, sprite->scale.y);
     //}
 
+    if(sprite->flip == X && !sprite->camera)
+        glm_scale(cam, (vec3){-1.0f, 1.0f, 1.0f});
     if(sprite->camera){
-        float camx = (sprite->camera->x * sprite->scroll.x) - SCREEN_WIDTHF * 0.5f;
-        float camy = (sprite->camera->y * sprite->scroll.y) - SCREEN_HEIGHTF * 0.5f;
-        camx *= sprite->camera->zoom;
-        camy *= sprite->camera->zoom;
-
+        float camx = (sprite->camera->x) - (SCREEN_WIDTHF * 0.5f);
+        float camy = (sprite->camera->y) - (SCREEN_HEIGHTF * 0.5f);
+        camx *= sprite->scroll.x;
+        camy *= sprite->scroll.y;
+        //camx *= sprite->camera->zoom;
+        //camy *= sprite->camera->zoom;
         glm_scale(cam, (vec3){sprite->camera->zoom, sprite->camera->zoom, 0.0f});
         glm_translate(cam, (vec3){camx, camy, 0.0f});
 
+        if(sprite->flip == X)
+            glm_scale(cam, (vec3){-1.0f, 1.0f, 1.0f});
+
         mat4 view = GLM_MAT4_IDENTITY_INIT;
-        glm_translate(view, (vec3){(sprite->x + sprite->offset.x) * sprite->scroll.x * sprite->camera->zoom, (sprite->y + sprite->offset.y) * sprite->scroll.y * sprite->camera->zoom, 0.0f});
+        float flip = sprite->flip == X ? sprite->graphic.w : 0.0f;
+        camx = ((sprite->x + sprite->offset.x + flip)) * sprite->scroll.x * sprite->camera->zoom;
+        camy = ((sprite->y + sprite->offset.y)) * sprite->scroll.y * sprite->camera->zoom;
+
+
+        glm_translate(view, (vec3){camx, camy, 0.0f});
+
+        //glm_translate(view, (vec3){SCREEN_WIDTHF * 0.5f, SCREEN_HEIGHTF * 0.5f, 0.f});
 
         glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "view"), 1, false, (float*)view);
     }
