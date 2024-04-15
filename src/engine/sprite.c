@@ -308,10 +308,8 @@ void handle_animations(fnf_sprite* sprite){
     generate2DVertices(sprite->gl.vertices, frame->x, frame->y, frame->w, frame->h);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(sprite->gl.vertices), sprite->gl.vertices);
 
-    uint32 dt = SDL_GetTicks() - sprite->animation.lastFrame;
-
     if(!sprite->animation.finished){
-        sprite->animation.frameNum = ((SDL_GetTicks() - sprite->animation.lastFrame) * (sprite->animation.currentAnimation->fps) / 1000) % sprite->animation.currentAnimation->playlistSize + 1; //= ((SDL_GetTicks() / (1000 / sprite->animation.currentAnimation->fps)) % sprite->animation.currentAnimation->playlistSize + 1);//++;
+        sprite->animation.frameNum = ((get_ticks() - sprite->animation.lastFrame) * (sprite->animation.currentAnimation->fps) / 1000) % sprite->animation.currentAnimation->playlistSize + 1; //= ((SDL_GetTicks() / (1000 / sprite->animation.currentAnimation->fps)) % sprite->animation.currentAnimation->playlistSize + 1);//++;
         //sprite->animation.frameNum = (int)floor(sprite->animation.currentAnimation->fps * SDL_GetTicks() / 1000) % sprite->animation.currentAnimation->playlistSize;
     }
 }
@@ -375,8 +373,12 @@ void draw_sprite(fnf_sprite* sprite) {
     if(sprite->flip == X && !sprite->camera)
         glm_scale(cam, (vec3){-1.0f, 1.0f, 1.0f});
     if(sprite->camera){
-        float camx = (sprite->camera->x) - (SCREEN_WIDTHF * 0.5f);
-        float camy = (sprite->camera->y) - (SCREEN_HEIGHTF * 0.5f);
+        float camx =  (SCREEN_WIDTHF * 0.5f);
+        float camy = (SCREEN_HEIGHTF * 0.5f);
+        camx -= (sprite->camera->x);
+        camy -= (sprite->camera->y);
+        camx /= sprite->scale.x;
+        camy /= sprite->scale.y;
         camx *= sprite->scroll.x;
         camy *= sprite->scroll.y;
         //camx *= sprite->camera->zoom;
@@ -389,9 +391,8 @@ void draw_sprite(fnf_sprite* sprite) {
 
         mat4 view = GLM_MAT4_IDENTITY_INIT;
         float flip = sprite->flip == X ? sprite->graphic.w : 0.0f;
-        camx = ((sprite->x + sprite->offset.x + flip)) * sprite->scroll.x * sprite->camera->zoom;
-        camy = ((sprite->y + sprite->offset.y)) * sprite->scroll.y * sprite->camera->zoom;
-
+        camx = ((sprite->x + sprite->offset.x + flip)) * sprite->camera->zoom;
+        camy = ((sprite->y + sprite->offset.y)) * sprite->camera->zoom;
 
         glm_translate(view, (vec3){camx, camy, 0.0f});
 

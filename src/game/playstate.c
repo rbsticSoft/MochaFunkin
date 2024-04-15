@@ -31,11 +31,13 @@ uint32_t note_size = 0;
 
 fnf_audio inst;
 fnf_audio voices;
+fnf_audio dead;
 
 fnf_song song;
 fnf_stage_t stage;
 
 bool hit_sections[256];
+bool bf_dead = false;
 
 char* load_song_name = NULL;
 const char* difficulty = "hard";
@@ -60,12 +62,15 @@ fnf_vector cam_follow;
 
 fnf_sprite* dad, *gf, *boyfriend;
 fnf_sprite* dad_icon, *bf_icon;
+fnf_sprite* limo_overlay;
+
 float bf_timer, dad_timer;
 
 void create_play_state(){
     health = 1.0f;
     score = 0.0f;
     note_size = 0;
+    bf_dead = false;
 
     char path[255];
     sprintf(path, "assets/data/%s/%s-%s.json", load_song_name, load_song_name, difficulty);
@@ -78,6 +83,20 @@ void create_play_state(){
     play_camera->zoom = 0.9f;
 
     create_stage(stage, play_camera);
+
+    switch(stage){
+        case LIMO: {
+            limo_overlay = make_sprite(-120, 550, true);
+            load_sprite(limo_overlay, "assets/week4/images/limo/limoDrive.png");
+            animation_load_atlas(&limo_overlay->animation, "assets/week4/images/limo/limoDrive.xml");
+
+            animation_add_prefix(&limo_overlay->animation, "drive", "Limo stage", true, 24);
+            animation_play(&limo_overlay->animation, "drive");
+            limo_overlay->camera = play_camera;
+            break;
+        }
+        default: break;
+    }
 
     gf = make_sprite(400, 130, true);
     gf->scroll = (fnf_vector){0.95f, 0.95f};
@@ -95,6 +114,8 @@ void create_play_state(){
     animation_play(&gf->animation, "danceLeft");
     add_sprite(gf);
 
+    if(stage == LIMO)
+        add_sprite(limo_overlay);
 
     boyfriend = create_character(770, 450, song.bf);
     boyfriend->camera = play_camera;
@@ -103,6 +124,14 @@ void create_play_state(){
     dad = create_character(100, 100, song.dad);
     dad->camera = play_camera;
     add_sprite(dad);
+
+    switch(stage){
+        case LIMO: {
+            move_sprite(boyfriend, boyfriend->x + 260, boyfriend->y - 220);
+            break;
+        }
+        default: break;
+    }
 
     if(!arrow_base)
         arrow_base = create_arrows();
@@ -149,11 +178,14 @@ void create_play_state(){
     
     inst = make_audio();
     voices = make_audio();
+    dead = make_audio();
 
     sprintf(path, "assets/songs/%s/Inst.ogg", load_song_name);
     load_audio(&inst, path);
     sprintf(path, "assets/songs/%s/Voices.ogg", load_song_name);
     load_audio(&voices, path);
+
+    load_audio(&dead, "assets/shared/sounds/fnf_loss_sfx.ogg");
 
     play_audio(&inst);
     play_audio(&voices);
@@ -232,8 +264,14 @@ void draw_play_state(){
     oldStep = curStep;
     curStep = (int32)floorf(current_conductor->songPosition / current_conductor->stepCrochet);
 
-    update_bf();
-    keyShit();
+    if(!bf_dead) {
+        update_bf();
+        keyShit();
+    }
+    else{
+        cam_follow.x = (boyfriend->x + boyfriend->graphic.w * 0.5f) - 100;
+        cam_follow.y = (boyfriend->y + boyfriend->graphic.h * 0.5f) - 100;
+    }
 
     for(int i=0; i < note_size; i++){
         fnf_note* da_note = &note_sprites[i];
@@ -316,7 +354,12 @@ void draw_play_state(){
 
     draw_all_sprites();
 
-    draw_text(score_txt, health_bar_bg->x + health_bar_bg->w - 190.f, health_bar_bg->y + 30.f, 1.f);
+    if(!bf_dead)
+        draw_text(score_txt, health_bar_bg->x + health_bar_bg->w - 190.f, health_bar_bg->y + 30.f, 1.f);
+    if(key_just_pressed(ENTER) && bf_dead)
+        switch_state(&play_state);
+    if(key_just_pressed(BACK) && bf_dead)
+        switch_state(&freeplay_state);
 }
 
 void step_hit(int32 step){
@@ -325,19 +368,43 @@ void step_hit(int32 step){
     if(beat == 0)
         beat_hit(floor(step/4));
 
-    if(!hit_sections[step/16]){
+    int offsetx = 0;
+    int offsety = 0;
+
+    if(hit_sections[step/16]){
+        switch(stage){
+            case LIMO: {
+                offsetx = -300;
+                break;
+            }
+            case MALL: {
+                offsety = -200;
+                break;
+            }
+            default: break;
+        }
         cam_follow.x = (boyfriend->x + boyfriend->graphic.w * 0.5f) - 100;
         cam_follow.y = (boyfriend->y + boyfriend->graphic.h * 0.5f) - 100;
     }
     else{
+        switch(stage) {
+            case LIMO: {
+                offsety = -100;
+                break;
+            }
+            default: break;
+        }
         cam_follow.x = (dad->x + dad->graphic.w * 0.5f) + 150;
         cam_follow.y = (dad->y + dad->graphic.h * 0.5f) - 100;
     }
 
+    cam_follow.x += offsetx;
+    cam_follow.y += offsety;
+
 }
 void beat_hit(int32 beat){
-    static bool danceLeft = false;
-
+    if(bf_dead)
+        return;
     //quick comparison
     if(beat % 2 == 0){    
         if(boyfriend->animation.currentAnimation->name[0] != 's')
@@ -346,11 +413,10 @@ void beat_hit(int32 beat){
             animation_play(&dad->animation, "idle");
     }
 
-    danceLeft = !danceLeft;
-        if(danceLeft)
-            animation_play(&gf->animation, "danceLeft");
-        else
-            animation_play(&gf->animation, "danceRight");
+    if(beat % 2)
+        animation_play(&gf->animation, "danceLeft");
+    else
+        animation_play(&gf->animation, "danceRight");
 }
 
 void uninit_play_state(){
@@ -407,6 +473,7 @@ void song_info(){
     if(!strcmp(load_song_name, "ugh") || !strcmp(load_song_name, "guns") || !strcmp(load_song_name, "stress"))
         stage = TANK;
 }
+
 int count_notes(){
     int size = 0;
     JSON_Object *root_object = json_value_get_object(chart);
@@ -569,7 +636,21 @@ void good_note_hit(fnf_note* da_note){
 }
 
 void bf_death(){
-    switch_state(&play_state);
+    stop_audio(&inst);
+    stop_audio(&voices);
+
+    fnf_sprite** sprites = get_sprites();
+    uint16 sprites_size = *get_sprites_size();
+
+    for(int i=0; i<sprites_size; i++) {
+        if(!sprites[i]) continue;
+        sprites[i]->enabled = false;
+    }
+    boyfriend->enabled = true;
+    animation_play(&boyfriend->animation, "firstDeath");
+    bf_dead = true;
+    play_audio(&dead);
+    //switch_state(&play_state);
 }
 
 void add_health(float hp){

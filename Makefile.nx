@@ -38,11 +38,11 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
-BUILD		:=	build_mx
+BUILD		:=	build_nx
 SOURCES		:=	src src/common src/engine src/game parson
 DATA		:=	data
 INCLUDES	:=	include cglm/include parson
-ROMFS		:=	assets
+#ROMFS		:=	assets
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -61,7 +61,7 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lopenal -lSDL2main -lSDL2 -lEGL -lglapi -ldrm_nouveau \
+LIBS	:= -lopenal -lSDL2 -lEGL -lglapi -ldrm_nouveau \
 		-lvorbisfile -lvorbis -logg -lxml2 -lglad `freetype-config --libs` -lmbedtls -lmbedx509 -lmbedcrypto -lz -lnx -lm -lstdc++
 
 #---------------------------------------------------------------------------------

@@ -40,6 +40,7 @@ typedef struct {
 
 
 bool animation_load_atlas(fnf_animation_controller* controller, const char* path);
+bool animation_load_packer(fnf_animation_controller* controller, const char* path);
 bool animation_add_prefix(fnf_animation_controller* controller, const char* prefix, const char* anim, bool looped, int32 fps);
 bool animation_add_prefix_indices(fnf_animation_controller* controller, const char* prefix, const char* anim, bool looped, int32 fps, int32* indices, uint8 indices_size);
 bool animation_play_force(fnf_animation_controller* animation, const char* prefix, bool force);

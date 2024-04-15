@@ -140,3 +140,7 @@ void start_fnfc(){
 inline uint32 get_delta(){
     return dt;
 }
+
+inline uint32 get_ticks(){
+    return SDL_GetTicks();
+}

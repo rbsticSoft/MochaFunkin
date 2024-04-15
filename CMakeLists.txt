@@ -9,7 +9,7 @@ list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_SOURCE_DIR}/")
 
 file(GLOB FNF_SOURCES
     "src/common/*.c"
-    "src/common/glad.c"
+    "src/common/platform/glad.c"
     "src/engine/*.c"
     "src/game/*.c"
     "parson/parson.c"

@@ -91,6 +91,37 @@ bool animation_load_atlas(fnf_animation_controller* controller, const char* path
     return true;
 }
 
+bool animation_load_packer(fnf_animation_controller* controller, const char* path){
+    if(!controller)
+        return false;
+
+    FILE* offsets = fopen(path, "r");
+    if(!offsets) return false;
+    char c[256];
+    while(fgets(c, 256, offsets)){
+        char* token = strtok(c, " ");
+        int stage = 0;
+        char abuf[64];
+        int x,y,w,h;
+        fnf_animation* animation = find_animation(controller, abuf);
+        if(!animation){
+            animation = &controller->collection->animations[controller->collection->animationsSize++];
+            strcpy(animation->name, abuf);
+        }
+
+        fnf_frame* frame = &animation->frames[animation->framesSize];
+        frame->x = x;
+        frame->y = y;
+        frame->w = w;
+        frame->h = h;
+
+        animation->framesSize++;
+    }
+    fclose(offsets);
+
+    return true;
+}
+
 bool animation_add_prefix(fnf_animation_controller *controller, const char *sprefix, const char *anim, bool looped, int32 fps)
 {
     fnf_animation* animation;
@@ -128,7 +159,7 @@ bool animation_add_prefix_indices(fnf_animation_controller* controller, const ch
     return true;
 }
 
-#include <SDL2/SDL.h>
+#include "engine.h"
 
 bool animation_play_force(fnf_animation_controller* animation, const char* prefix, bool force) {
     fnf_animation_prefix* anim = find_prefix(animation, prefix);
@@ -139,7 +170,7 @@ bool animation_play_force(fnf_animation_controller* animation, const char* prefi
     animation->frameNum = 0;
     animation->currentAnimation = anim;
     animation->finished = false;
-    animation->lastFrame = SDL_GetTicks();
+    animation->lastFrame = get_ticks();
     return animation->currentAnimation != NULL;
 }
 
