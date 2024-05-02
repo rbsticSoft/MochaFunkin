@@ -6,11 +6,12 @@
 #include "font.h"
 #include "conductor.h"
 #include "controls.h"
-#include <glad/glad.h>
+#include "glad/glad.h"
 #include <assert.h>
 
 #define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
+#include <unistd.h>
 
 uint32 frames_elapsed = 0;
 
@@ -62,17 +63,22 @@ bool key_just_pressed(fnf_key_t key){
 static uint32_t dt;
 
 void start_fnfc(){
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER | SDL_INIT_JOYSTICK);
     SDL_Window* win = SDL_CreateWindow("Friday Night Funkin'", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_JoystickEventState(SDL_ENABLE);
+    SDL_JoystickOpen(0);
+
+    chdir("");
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 3);
 
-    SDL_GL_CreateContext(win);
+    SDL_GLContext cont = SDL_GL_CreateContext(win);
+    SDL_GL_MakeCurrent(win, cont);
 
     gladLoadGL();
 
@@ -81,7 +87,7 @@ void start_fnfc(){
     glEnable(GL_SCISSOR_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
+
     switch_state(&title_state);
     bool close = true;
 
@@ -97,7 +103,6 @@ void start_fnfc(){
         uint32_t start = SDL_GetTicks();
         while(SDL_PollEvent(&e)){
             switch(e.type){
-                SDLK_UP;
                 case SDL_KEYDOWN:
                     if(!e.key.repeat)
                         keypress(e.key.keysym.sym, true);
@@ -105,6 +110,54 @@ void start_fnfc(){
                     break;
                 case SDL_KEYUP:
                     keypress(e.key.keysym.sym, false);
+                    //printf( "Key release detected\n" );
+                    break;
+                case SDL_JOYBUTTONDOWN:
+                    switch(e.jbutton.button){
+                        case 0:
+                            keypress(SDLK_RIGHT, true);
+                            break;
+                        case 1:
+                            keypress(SDLK_DOWN, true);
+                            break;
+                        case 2:
+                            keypress(SDLK_UP, true);
+                            break;
+                        case 3:
+                            keypress(SDLK_LEFT, true);
+                            break;
+                        case 15:
+                            keypress(SDLK_RETURN, true);
+                            break;
+                        case 10:
+                            close = false;
+                            break;
+                    }
+                    //keypress(e.key.keysym.sym, true);
+                    //printf( "Key press detected %i\n", (char)e.key.keysym.sym );
+                    break;
+                case SDL_JOYBUTTONUP:
+                    switch(e.jbutton.button){
+                        case 0:
+                            keypress(SDLK_RIGHT, false);
+                            break;
+                        case 1:
+                            keypress(SDLK_DOWN, false);
+                            break;
+                        case 2:
+                            keypress(SDLK_UP, false);
+                            break;
+                        case 3:
+                            keypress(SDLK_LEFT, false);
+                            break;
+                        case 15:
+                            keypress(SDLK_RETURN, false);
+                            break;
+                        case 10:
+                            close = false;
+                            break;
+                    }
+                    //keypress(e.key.keysym.sym, false);
                     //printf( "Key release detected\n" );
                     break;
                 case SDL_QUIT:

@@ -4,8 +4,6 @@
 #include "controls.h"
 #include "audio.h"
 
-#define rarray_size(x) sizeof(x) / sizeof(x[0])
-
 char* songs[] = {
     "tutorial",
     "bopeebo",
@@ -58,7 +56,7 @@ void draw_freeplay_state(){
     if(key_just_pressed(DOWN))
         select_song(1);
     if(key_just_pressed(ENTER)){
-        load_song_name = songs[current_selection];
+        load_song(songs[current_selection], NULL);
         switch_state(&play_state);
     }
 

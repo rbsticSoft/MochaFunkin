@@ -71,6 +71,19 @@ fnf_sprite* create_character(float x, float y, const char* name){
         animation_play(&character->animation, "idle");
     }
 
+    if(strcmp(name, "bf-holding-gf") == 0){
+        move_sprite(character, character->x + 200, character->y);
+        load_sprite(character, "assets/shared/images/characters/bfAndGF.png");
+        animation_load_atlas(&character->animation, "assets/shared/images/characters/bfAndGF.xml");
+        animation_add_prefix(&character->animation, "idle", "BF idle dance w gf", false, 24);
+        animation_add_prefix(&character->animation, "singLEFT", "BF NOTE LEFT", false, 24);
+        animation_add_prefix(&character->animation, "singDOWN", "BF NOTE DOWN", false, 24);
+        animation_add_prefix(&character->animation, "singUP", "BF NOTE UP", false, 24);
+        animation_add_prefix(&character->animation, "singRIGHT", "BF NOTE RIGHT", false, 24);
+
+        animation_play(&character->animation, "idle");
+    }
+
     if(strcmp(name, "dad") == 0){
         load_sprite(character, "assets/shared/images/characters/DADDY_DEAREST.png");
         animation_load_atlas(&character->animation, "assets/shared/images/characters/DADDY_DEAREST.xml");

@@ -38,8 +38,9 @@ fnf_stage_t stage;
 
 bool hit_sections[256];
 bool bf_dead = false;
+bool paused = false;
 
-char* load_song_name = NULL;
+char load_song_name[64];
 const char* difficulty = "hard";
 char score_txt[32] = "Score: 0";
 
@@ -47,13 +48,16 @@ int score = 0;
 float health = 1.0f;
 
 bool bring_to_front(fnf_sprite** index, fnf_sprite** end);
+
 int count_notes();
 void song_info();
 void generate_song(const char* path);
-fnf_note* generate_note(float strum_time, int note_type, int must_hit, bool sus_time);
 void generate_static_notes();
 void add_health(float hp);
 void keyShit();
+void end_song();
+
+fnf_note* generate_note(float strum_time, int note_type, int must_hit, bool sus_time);
 
 fnf_camera* play_camera;
 fnf_camera* hud_camera;
@@ -66,11 +70,36 @@ fnf_sprite* limo_overlay;
 
 float bf_timer, dad_timer;
 
+char** current_week;
+int current_week_song;
+
+void tolowersptr(char* ptr) {
+    char *lptr = ptr;
+    while (*lptr) {
+        intptr_t loc = lptr++ - ptr;
+        ptr[loc] = tolower(ptr[loc]);
+    }
+}
+
+void load_song(char* name, char** week){
+    current_week = week;
+    if(!name){
+        current_week_song = 0;
+        strcpy(load_song_name, week[current_week_song]);
+        tolowersptr(load_song_name);
+        return;
+    }
+
+    strcpy(load_song_name, name);
+    tolowersptr(load_song_name);
+};
+
 void create_play_state(){
     health = 1.0f;
     score = 0.0f;
     note_size = 0;
     bf_dead = false;
+    paused = false;
 
     char path[255];
     sprintf(path, "assets/data/%s/%s-%s.json", load_song_name, load_song_name, difficulty);
@@ -135,7 +164,6 @@ void create_play_state(){
 
     if(!arrow_base)
         arrow_base = create_arrows();
-
 
     generate_static_notes();
     
@@ -256,7 +284,83 @@ void update_bf(){
 
 }
 
+const char* paused_items[] = {
+        "Resume",
+        "Restart Song",
+        "Toggle Practice Mode",
+        "Exit to menu"
+};
+
+int paused_items_size = rarray_size(paused_items);
+int paused_selection = 0;
+
+float px[rarray_size(paused_items)];
+float py[rarray_size(paused_items)];
+fnf_sprite* black = 0;
+
+void init_pause(){
+    if(!black) {
+        black = make_sprite(0, 0, false);
+        add_sprite(black);
+    }
+    create_shape(black);
+    resize_sprite(black, SCREEN_WIDTHF, SCREEN_HEIGHTF);
+    set_alpha(black, 0.5f);
+
+    for(int i=0; i<paused_items_size; i++){
+        px[i] = 0;
+        py[i] = (70 * i) + 30;
+    }
+}
+
+void unpause(){
+    paused = false;
+
+    play_audio(&inst);
+    play_audio(&voices);
+    set_alpha(black, 0.0f);
+}
+
+void select_pause(int what){
+    paused_selection += what;
+    if(paused_selection >= paused_items_size)
+        paused_selection = 0;
+    if(paused_selection < 0)
+        paused_selection = paused_items_size - 1;
+    play_audio(select_menu);
+}
+
+void pause_action(){
+    switch(paused_selection){
+        case 0:
+            unpause();
+            break;
+        case 1:
+            switch_state(&play_state);
+            break;
+        case 3:
+            paused = false;
+            switch_state(&freeplay_state);
+            break;
+    }
+}
+
 void draw_play_state(){
+    bool enter_pressed = key_just_pressed(ENTER);
+    if(enter_pressed && !paused) {
+        paused = true;
+        pause_audio(&inst);
+        pause_audio(&voices);
+        init_pause();
+        enter_pressed = false;
+    }
+    if(enter_pressed && paused) {
+        pause_action();
+    }
+
+    if(stopped_audio(&inst))
+        end_song();
+
     static int32 oldStep = 0;
 	static int32 curStep = 0;
 
@@ -264,7 +368,7 @@ void draw_play_state(){
     oldStep = curStep;
     curStep = (int32)floorf(current_conductor->songPosition / current_conductor->stepCrochet);
 
-    if(!bf_dead) {
+    if(!bf_dead && !paused) {
         update_bf();
         keyShit();
     }
@@ -274,6 +378,7 @@ void draw_play_state(){
     }
 
     for(int i=0; i < note_size; i++){
+        if(paused)break;
         fnf_note* da_note = &note_sprites[i];
         update_note(&note_sprites[i]);
         //if(!da_note->sprite->enabled) continue; //this line causes lag????
@@ -353,7 +458,19 @@ void draw_play_state(){
         step_hit(curStep);
 
     draw_all_sprites();
-
+    if(paused){
+        if(key_just_pressed(UP))
+            select_pause(-1);
+        if(key_just_pressed(DOWN))
+            select_pause(1);
+        for(int i=0; i<paused_items_size; i++){
+            int target = i - paused_selection;
+            float scaledY = remap(target - 2, 0, 1, 0, 1.3f);
+            py[i] = lerp(py[i], (scaledY * 120) + (SCREEN_WIDTHF * 0.48), 0.16);
+            px[i] = lerp(px[i], (target * 20) + 90, 0.16);
+            draw_alphabet(paused_items[i], px[i], py[i], paused_selection == i ? 1.0f : 0.6f);
+        }
+    }
     if(!bf_dead)
         draw_text(score_txt, health_bar_bg->x + health_bar_bg->w - 190.f, health_bar_bg->y + 30.f, 1.f);
     if(key_just_pressed(ENTER) && bf_dead)
@@ -402,6 +519,7 @@ void step_hit(int32 step){
     cam_follow.y += offsety;
 
 }
+
 void beat_hit(int32 beat){
     if(bf_dead)
         return;
@@ -427,6 +545,8 @@ void uninit_play_state(){
     delete_audio(&voices);
 
     FNF_DELETE(note_sprites);
+    black = 0;
+
     free_sprites();
     kill_sprites();
 }
@@ -727,4 +847,18 @@ void keyShit(){
     if (bf_timer > current_conductor->stepCrochet * 4.0f * 0.001f && (*(uint32_t*)hold_array) == 0x00000000)
 			if (boyfriend->animation.currentAnimation->name[0] == 's')
 				animation_play(&boyfriend->animation, "idle");
+}
+
+void end_song(){
+    if(current_week){
+        strcpy(load_song_name, current_week[++current_week_song]);
+        tolowersptr(load_song_name);
+        if(current_week_song > 2 || !current_week[current_week_song]) {
+            switch_state(&story_menu_state);
+            return;
+        }
+        switch_state(&play_state);
+        return;
+    }
+    switch_state(&freeplay_state);
 }

@@ -20,11 +20,9 @@ typedef struct {
 
 FNF_CREATE_STATE(title_state);
 FNF_CREATE_STATE(play_state);
-//FNF_CREATE_STATE(story_menu_state);
+FNF_CREATE_STATE(story_menu_state);
 FNF_CREATE_STATE(freeplay_state);
 FNF_CREATE_STATE(main_menu_state);
-
-extern char* load_song_name;
 
 bool add_sprite(fnf_sprite* sprite);
 bool switch_state(fnf_state* state);
@@ -42,5 +40,9 @@ uint16* get_sprites_size();
 
 void draw_all_sprites();
 bool _switchState();
+
+void load_song(char* name, char** week);
+
+#define rarray_size(x) (sizeof(x) / sizeof(x[0]))
 
 #endif // STATES_H

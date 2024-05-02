@@ -10,6 +10,7 @@ const char* options[] = {
 };
 
 int cur_selection = 0;
+
 fnf_sprite* menu_options[2];
 
 void selection(int what);
@@ -55,7 +56,6 @@ void selection(int what){
         cur_selection = 1;
     sprintf(buf, options[cur_selection], "selected");
     animation_play(&menu_options[cur_selection]->animation, buf);
-
 }
 
 void draw_main_menu_state(){
@@ -63,13 +63,16 @@ void draw_main_menu_state(){
         selection(-1);
     if(key_just_pressed(DOWN))
         selection(1);
-    if(key_just_pressed(ENTER))
-        switch_state(&freeplay_state);
-
-    for (int i=0; i<2; i++)
-        center_sprite(menu_options[i], X);
+    if(key_just_pressed(ENTER)) {
+        if(cur_selection == 0)
+            switch_state(&story_menu_state);
+        else
+            switch_state(&freeplay_state);
+    }
 
     draw_all_sprites();
+    for (int i=0; i<2; i++)
+        center_sprite(menu_options[i], X);
 }
 
 void uninit_main_menu_state(){

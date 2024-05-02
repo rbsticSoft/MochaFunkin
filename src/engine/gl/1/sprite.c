@@ -1,10 +1,6 @@
 #include "sprite.h"
-#include "glad/glad.h"
-#include "shader.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include "cglm/mat4.h"
-#include "cglm/cglm.h"
 
 #include <GL/gl.h>
 #include <malloc.h>
@@ -13,26 +9,21 @@
 //#include <png.h>
 
 bool init = false;
-mat4 ortho;
 
-void generateVertices(float* vertices, float x, float y, float w, float h){
-    float z = 0.0f;
+void generate_vertices(float x, float y, float w, float h){
+    glColor3f( 1, 1, 1 );
+    glVertex2f(x + w, y);
 
-    vertices[0] = x + w;
-    vertices[1] = y;
-    vertices[2] = z;
+    glVertex2f(x + w, y + h);
 
-    vertices[5] = x + w;
-    vertices[6] = y + h;
-    vertices[7] = z;
+    glVertex2f(x, y + h);
 
-    vertices[10] = x;
-    vertices[11] = y + h;
-    vertices[12] = z;
+    glVertex2f( x, y );
 
-    vertices[15] = x;
-    vertices[16] = y;
-    vertices[17] = z;
+    glTexCoord2f(0, 1);
+    glTexCoord2f(1, 1);
+    glTexCoord2f(1, 0);
+    glTexCoord2f(0, 0);
 }
 
 void generate2DVertices(float* vertices, float x, float y, float w, float h){
@@ -49,33 +40,7 @@ void generate2DVertices(float* vertices, float x, float y, float w, float h){
     vertices[19] = y;
 }
 
-void _init_sprite(fnf_sprite* sprite){
-    static uint32 indices[] = {0, 1, 3, 1, 2, 3};
-    generateVertices(sprite->gl.vertices, 0, 0, sprite->w, sprite->h);
-    generate2DVertices(sprite->gl.vertices, 0, 0, sprite->w, sprite->h);
-
-    glGenVertexArrays(1, &sprite->gl.VAO); 
-    glGenBuffers(1, &sprite->gl.VBO);
-    glGenBuffers(1, &sprite->gl.EBO);  
-
-    glBindVertexArray(sprite->gl.VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, sprite->gl.VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(sprite->gl.vertices), sprite->gl.vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sprite->gl.EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices) * sizeof(unsigned int), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(0);
-}
-
 fnf_sprite* make_sprite(float x, float y, bool animated) {
-    glm_ortho(0.0f, SCREEN_WIDTHF, SCREEN_HEIGHTF, 0.0f, -1000.0f, 1000.0f, ortho);
-
     fnf_sprite* sprite = FNF_NEW(fnf_sprite);
     FNF_ZERO(sprite, sizeof(fnf_sprite));
 
@@ -95,41 +60,17 @@ fnf_sprite* make_sprite(float x, float y, bool animated) {
     }
 
     sprite->color = 0xFFFFFFFF;
-    sprite->shader = create_shader();
     sprite->shader.shared = false;
 
     glGenTextures(1, &sprite->graphic.spr);
-    glUseProgram(sprite->shader.program);
-
-    glUniform2f(glGetUniformLocation(sprite->shader.program, "ScreenResolution"), SCREEN_WIDTHF, SCREEN_HEIGHTF);
-    glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "projection"), 1, false, (float*)ortho);
     set_alpha(sprite, 1.0f);
 
     return sprite;
 }
 
-static const char* SHAPE_SHADER = glsl(
-    uniform sampler2D bitmap;
-    uniform vec2 ScreenResolution;
-
-    out vec4 FragColor;
-    in vec2 fragCoord;
-    in vec3 SColor;
-
-    void main() {    
-        vec2 uv = fragCoord;
-        FragColor = vec4(SColor, 1.0);
-    }
-);
-
 fnf_sprite* create_shape(fnf_sprite* sprite){
-    sprite->shader = create_shader_text(0, SHAPE_SHADER);
-    glUseProgram(sprite->shader.program);
-    glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "projection"), 1, false, (float*)ortho);
     sprite->graphic.w = sprite->w;
     sprite->graphic.h = sprite->h;
-
-    _init_sprite(sprite);
 
     scale_sprite(sprite, 1.f, 1.f);    
     resize_sprite(sprite, sprite->w, sprite->h);
@@ -139,15 +80,12 @@ fnf_sprite* create_shape(fnf_sprite* sprite){
 
 fnf_sprite* set_color(fnf_sprite* sprite, uint32_t color){
     sprite->color = color;
-    
-    glUseProgram(sprite->shader.program);
-    glUniform3f(glGetUniformLocation(sprite->shader.program, "color"), sprite->r / 255.f, sprite->g / 255.f, sprite->b / 255.f);
 
     return sprite;
 }
 
 fnf_sprite* set_alpha(fnf_sprite* sprite, float alpha){
-    glUniform1f(glGetUniformLocation(sprite->shader.program, "alpha"), alpha);
+    sprite->a = alpha;
     return sprite;
 }
 
@@ -157,12 +95,7 @@ fnf_sprite* set_flip(fnf_sprite* sprite, fnf_axis_t axis){
 }
 
 void delete_sprite(fnf_sprite* sprite) {
-    glDeleteProgram(sprite->shader.program);
     glDeleteTextures(1, &sprite->graphic.spr);
-
-    glDeleteVertexArrays(1, &sprite->gl.VAO);
-    glDeleteBuffers(1, &sprite->gl.VBO);
-    glDeleteBuffers(1, &sprite->gl.EBO);
 
     if(sprite->animated)
         FNF_DELETE(sprite->animation.collection);
@@ -189,16 +122,6 @@ fnf_sprite *load_sprite(fnf_sprite *sprite, const char *path)
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     glTexImage2D(GL_TEXTURE_2D, 0, format, sprite->w, sprite->h, 0, format, GL_UNSIGNED_BYTE, row_pointers);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    //glUniform1i(glGetUniformLocation(sprite->shader.program, "bitmap"), sprite->spr);
-    /*
-    for (int y = 0; y < sprite->h; y++) {
-        png_free(png_ptr, row_pointers[y]);
-    }
-    png_free(png_ptr, row_pointers);
-    png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
-    */
-    _init_sprite(sprite);
 
     stbi_image_free(row_pointers);
 
@@ -212,7 +135,6 @@ fnf_sprite* clone_sprite(fnf_sprite* sprite){
 
     memcpy(target, sprite, sizeof(fnf_sprite));
 
-    target->shader.shared = true;
     return target;
 }
 
@@ -220,22 +142,12 @@ fnf_sprite* resize_sprite(fnf_sprite* sprite, uint16 w, uint16 h){
     sprite->w = w;
     sprite->h = h;
 
-    generateVertices(sprite->gl.vertices, 0, 0, w, h);
-    glBindBuffer(GL_ARRAY_BUFFER, sprite->gl.VBO);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(sprite->gl.vertices), sprite->gl.vertices);
-
     return move_sprite(sprite, sprite->x, sprite->y);
 }
 
 fnf_sprite* scale_sprite(fnf_sprite* sprite, float x, float y){
-    mat4 model = GLM_MAT4_IDENTITY_INIT;
-    glm_scale(model, (vec3){x, y, 0.f});
-        
-
     sprite->scale.x = x;
     sprite->scale.y = y;
-
-    glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "model"), 1, false, (float*)model);
     return sprite;
 }
 
@@ -243,15 +155,6 @@ fnf_sprite* move_sprite(fnf_sprite* sprite, float x, float y)
 {
     sprite->x = x;// - (sprite->w);
     sprite->y = y;//; - (sprite->h);
-
-    mat4 view = GLM_MAT4_IDENTITY_INIT;
-    
-    if(sprite->flip == X)
-        glm_translate(view, (vec3){((sprite->x+sprite->graphic.w) + sprite->offset.x), sprite->y + sprite->offset.y, 0.0f});
-    else
-        glm_translate(view, (vec3){sprite->x + sprite->offset.x, sprite->y + sprite->offset.y, 0.0f});
-
-    glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "view"), 1, false, (float*)view);
 
     return sprite;
 }
@@ -303,10 +206,8 @@ void handle_animations(fnf_sprite* sprite){
     //float offsetY = (sprite->y + frame->fy);
     sprite->graphic.w = frame->w;
     sprite->graphic.h = frame->h;
-    
-    generateVertices(sprite->gl.vertices, 0, 0, (float)frame->fw, (float)frame->fh);
+
     generate2DVertices(sprite->gl.vertices, frame->x, frame->y, frame->w, frame->h);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(sprite->gl.vertices), sprite->gl.vertices);
 
     if(!sprite->animation.finished){
         sprite->animation.frameNum = ((get_ticks() - sprite->animation.lastFrame) * (sprite->animation.currentAnimation->fps) / 1000) % sprite->animation.currentAnimation->playlistSize + 1; //= ((SDL_GetTicks() / (1000 / sprite->animation.currentAnimation->fps)) % sprite->animation.currentAnimation->playlistSize + 1);//++;
@@ -349,18 +250,10 @@ void draw_sprite(fnf_sprite* sprite) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, sprite->graphic.spr);
 
-    glBindVertexArray(sprite->gl.VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, sprite->gl.VBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sprite->gl.EBO);
-
-    glUseProgram(sprite->shader.program);
-
     if(sprite->animated)
         handle_animations(sprite);
 
     static float xpos = 0.0f, ypos = 0.0f;
-    mat4 cam = GLM_MAT4_IDENTITY_INIT;
-
     xpos = sprite->x;
     ypos = sprite->y;
 
@@ -370,8 +263,6 @@ void draw_sprite(fnf_sprite* sprite) {
         scale_sprite(sprite, sprite->scale.x, sprite->scale.y);
     //}
 
-    if(sprite->flip == X && !sprite->camera)
-        glm_scale(cam, (vec3){-1.0f, 1.0f, 1.0f});
     if(sprite->camera){
         float camx =  (SCREEN_WIDTHF * 0.5f);
         float camy = (SCREEN_HEIGHTF * 0.5f);
@@ -383,25 +274,15 @@ void draw_sprite(fnf_sprite* sprite) {
         camy *= sprite->scroll.y;
         //camx *= sprite->camera->zoom;
         //camy *= sprite->camera->zoom;
-        glm_scale(cam, (vec3){sprite->camera->zoom, sprite->camera->zoom, 0.0f});
-        glm_translate(cam, (vec3){camx, camy, 0.0f});
 
-        if(sprite->flip == X)
-            glm_scale(cam, (vec3){-1.0f, 1.0f, 1.0f});
 
-        mat4 view = GLM_MAT4_IDENTITY_INIT;
         float flip = sprite->flip == X ? sprite->graphic.w : 0.0f;
         camx = ((sprite->x + sprite->offset.x + flip)) * sprite->camera->zoom;
         camy = ((sprite->y + sprite->offset.y)) * sprite->camera->zoom;
-
-        glm_translate(view, (vec3){camx, camy, 0.0f});
-
-        //glm_translate(view, (vec3){SCREEN_WIDTHF * 0.5f, SCREEN_HEIGHTF * 0.5f, 0.f});
-
-        glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "view"), 1, false, (float*)view);
     }
 
-    glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "camera"), 1, false, (float*)cam);
-
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glBegin(GL_QUADS);
+    generate_vertices(sprite->x, sprite->y, sprite->w, sprite->h);
+    glEnd();
+    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }

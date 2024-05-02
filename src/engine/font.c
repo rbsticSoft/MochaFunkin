@@ -33,7 +33,7 @@ const char* vfont = glsl(
 
     void main()
     {
-        gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
+        gl_Position = projection * vec4(vertex.x, vertex.y, 0.0, 1.0);
         TexCoords = vertex.zw;
     }  
 );
@@ -46,8 +46,9 @@ const char* ffont = glsl(
     uniform vec3 textColor;
 
     void main()
-    {    
-        vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, TexCoords).r);
+    {
+        vec2 uv = vec2(TexCoords.s, 1.0 - TexCoords.t);
+        vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, uv).r);
         color = vec4(textColor, 1.0) * sampled;
     }  
 );
@@ -75,7 +76,7 @@ void init_font(){
 
     shader = create_shader_text(vfont, ffont);
     glUseProgram(shader.program);
-    glm_ortho(0.0f, SCREEN_WIDTHF, 0.0f, SCREEN_HEIGHTF, -1000.0f, 1000.0f, orthographic);
+    glm_ortho(0.0f, SCREEN_WIDTHF, SCREEN_HEIGHTF, 0.0f, -1000.0f, 1000.0f, orthographic);
 
     glUniformMatrix4fv(glGetUniformLocation(shader.program, "projection"), 1, false, (float*)orthographic);
 
@@ -149,7 +150,7 @@ void init_font(){
 
 void draw_text(const unsigned char *text, float x, float y, float scale)
 {
-    y -= 650;
+    //y -= 650;
     // activate corresponding render state	
     glUseProgram(shader.program);
 
@@ -158,22 +159,28 @@ void draw_text(const unsigned char *text, float x, float y, float scale)
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(VAO);
 
+    float newline = 0.0f;
     // iterate through all characters
     for (unsigned int i = 0; i < strlen(text); i++) 
     {
         unsigned char c = text[i];
-        glyph ch = glyphs[c];
 
+        glyph ch = glyphs[c];
+        if(c == '\n') {
+            newline += ch.size.y;
+            continue;
+        }
         //y = (SCREEN_HEIGHTF - y) - glyphs[32].bearing.y;
 
         float xpos = x + ch.bearing.x * scale;
         float ypos = y - (ch.size.y - ch.bearing.y) * scale;
+        ypos += newline;
 
         float w = ch.size.x * scale;
         float h = ch.size.y * scale;
         // update VBO for each character
         float vertices[6][4] = {
-            { xpos,     ypos + h,   0.0f, 0.0f },            
+            { xpos,     ypos + h,   0.0f, 0.0f },
             { xpos,     ypos,       0.0f, 1.0f },
             { xpos + w, ypos,       1.0f, 1.0f },
 

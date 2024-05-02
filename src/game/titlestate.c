@@ -11,7 +11,7 @@ fnf_sprite* spr;
 
 void create_title_state(){
     audio = make_audio();
-    load_audio(&audio, "freakyMenu.ogg");
+    load_audio(&audio, "assets/music/freakyMenu.ogg");
 
     fnf_sprite* logo = make_sprite(-150, -100, true);
     animation_load_atlas(&logo->animation, "assets/images/logoBumpin.xml");

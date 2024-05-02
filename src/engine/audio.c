@@ -9,7 +9,6 @@ fnf_audio* select_menu = NULL;
 fnf_audio* back_menu = NULL;
 fnf_audio* accept_menu = NULL;
 
-
 void init_audio(){
     device = alcOpenDevice(NULL);
     context = alcCreateContext(device, NULL);
@@ -86,11 +85,24 @@ fnf_audio* play_audio(fnf_audio* audio){
     return audio;
 }
 
+fnf_audio* pause_audio(fnf_audio* audio){
+    if(!audio) return NULL;
+
+    alSourcePause(audio->source);
+    return audio;
+}
+
 fnf_audio* stop_audio(fnf_audio* audio){
     if(!audio) return NULL;
 
     alSourceStop(audio->source);
     return audio;
+}
+
+bool* stopped_audio(fnf_audio* audio){
+    int state;
+    alGetSourcei(audio->source, AL_SOURCE_STATE, &state);
+    return state == AL_STOPPED;
 }
 
 fnf_audio* set_audio_volume(fnf_audio* audio, float vol){

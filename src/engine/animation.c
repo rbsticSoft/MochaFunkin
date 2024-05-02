@@ -6,10 +6,14 @@
 #include <string.h>
 #include <stdlib.h>
 
+bool starts_with(const char* s1, const char* s2){
+    return strncmp(s1, s2, strlen(s2)) == 0;
+}
+
 fnf_animation* find_animation(fnf_animation_controller* controller, const char* name){
     for(int i=0; i<controller->collection->animationsSize; i++){
-        int found = strcmp(controller->collection->animations[i].name, name);
-        if(found == 0) 
+        int found = starts_with(controller->collection->animations[i].name, name);
+        if(found)
             return &controller->collection->animations[i];
     }
     return NULL; // not found
@@ -17,8 +21,8 @@ fnf_animation* find_animation(fnf_animation_controller* controller, const char* 
 
 fnf_animation_prefix* find_prefix(fnf_animation_controller* controller, const char* name){
     for(int i=0; i<controller->collection->prefixesSize; i++){
-        int found = strcmp(controller->collection->prefixes[i].name, name);
-        if(found == 0) 
+        int found = starts_with(controller->collection->prefixes[i].name, name);
+        if(found)
             return &controller->collection->prefixes[i];
     }
     return NULL; // not found

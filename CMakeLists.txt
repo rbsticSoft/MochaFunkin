@@ -11,6 +11,7 @@ file(GLOB FNF_SOURCES
     "src/common/*.c"
     "src/common/platform/glad.c"
     "src/engine/*.c"
+    "src/engine/gl/*.c"
     "src/game/*.c"
     "parson/parson.c"
 )

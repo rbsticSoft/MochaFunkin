@@ -18,6 +18,7 @@ typedef struct {
         };
         uint32 color;
     };
+    float alpha;
     struct {
         unsigned int VAO,VBO,EBO;
         float vertices[20];
