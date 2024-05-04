@@ -59,6 +59,7 @@ void init_alphabet(){
     alphabet_base = make_sprite(0, 0, true);
     load_sprite(alphabet_base, "assets/images/alphabet.png");
     animation_load_atlas(&alphabet_base->animation, "assets/images/alphabet.xml");
+    alphabet_base->shader.shared = true;
 
     char anim[6];
     for(char i = 'A'; i < 'Z'+1; i++){
@@ -160,19 +161,22 @@ void draw_text(const unsigned char *text, float x, float y, float scale)
     glBindVertexArray(VAO);
 
     float newline = 0.0f;
+    float originx = 0;
     // iterate through all characters
     for (unsigned int i = 0; i < strlen(text); i++) 
     {
         unsigned char c = text[i];
 
         glyph ch = glyphs[c];
-        if(c == '\n') {
-            newline += ch.size.y;
-            continue;
-        }
         //y = (SCREEN_HEIGHTF - y) - glyphs[32].bearing.y;
 
         float xpos = x + ch.bearing.x * scale;
+        if(c == '\n') {
+            newline += ch.size.y;
+            originx = xpos;
+            continue;
+        }
+        xpos -= originx;
         float ypos = y - (ch.size.y - ch.bearing.y) * scale;
         ypos += newline;
 

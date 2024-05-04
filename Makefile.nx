@@ -39,7 +39,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build_nx
-SOURCES		:=	src src/common src/engine src/game parson
+SOURCES		:=	src src/common src/engine src/engine/gl src/game parson
 DATA		:=	data
 INCLUDES	:=	include cglm/include parson
 #ROMFS		:=	assets

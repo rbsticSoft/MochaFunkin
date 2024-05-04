@@ -18,7 +18,7 @@ void selection(int what);
 void create_main_menu_state(){    
     fnf_sprite* bg = make_sprite(0, 0, false);
     bg->scroll.y = 0.18f;
-    load_sprite(bg, "assets/images/menuDesat.png");
+    load_sprite(bg, "assets/images/menuBG.png");
     add_sprite(bg);
 
 
@@ -41,7 +41,8 @@ void create_main_menu_state(){
         add_sprite(item);
     }
 
-    selection(0);
+    selection(1);
+    selection(1);
 }
 
 void selection(int what){
@@ -70,9 +71,9 @@ void draw_main_menu_state(){
             switch_state(&freeplay_state);
     }
 
-    draw_all_sprites();
     for (int i=0; i<2; i++)
         center_sprite(menu_options[i], X);
+    draw_all_sprites();
 }
 
 void uninit_main_menu_state(){

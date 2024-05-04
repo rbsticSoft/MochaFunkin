@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "saves.h"
 #include "sprite.h"
 #include "states.h"
 #include "engine.h"
@@ -7,7 +8,7 @@
 #include "conductor.h"
 #include "controls.h"
 #include "glad/glad.h"
-#include <assert.h>
+#include "fnf_data.h"
 
 #define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
@@ -70,7 +71,7 @@ void start_fnfc(){
     SDL_JoystickOpen(0);
 
     chdir("");
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     
@@ -84,23 +85,24 @@ void start_fnfc(){
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_SCISSOR_TEST);
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     switch_state(&title_state);
     bool close = true;
 
     init_audio();
     init_font();
-
+    init_saves();
+    set_highscore(week_songs[2][1], 9999);
+    printf("fresh highscore: %i\n", get_highscore(week_songs[2][1]));
     fnf_conductor_t conductor;
     init_conductor(&conductor);
     current_conductor = &conductor;
 
     while(close){
         SDL_Event e;
-        uint32_t start = SDL_GetTicks();
         while(SDL_PollEvent(&e)){
             switch(e.type){
                 case SDL_KEYDOWN:
@@ -172,6 +174,7 @@ void start_fnfc(){
             _switchState();
 
         //printf("%f\n",conductor.songPosition);
+        uint32_t start = SDL_GetTicks();
         get_curState()->draw();
         SDL_GL_SwapWindow(win);
 
@@ -186,6 +189,8 @@ void start_fnfc(){
     
     get_curState()->uninit();
     uninit_audio();
+    uninit_saves();
+
     SDL_DestroyWindow(win);
     SDL_Quit();
 }

@@ -7,3 +7,7 @@ float lerp(float a, float b, float ratio) {
 float remap(float value, float start1, float stop1, float start2, float stop2){
     return start2 + (value - start1) * ((stop2 - start2) / (stop1 - start1));
 }
+
+float cubeInOut(float t){
+    return t <= .5f ? t * t * t * 4 : 1 + (--t) * t * t * 4;
+}

@@ -9,12 +9,13 @@
 #include "engine.h"
 #include "math_fnf.h"
 #include "stage.h"
+#include "saves.h"
+#include "timer.h"
 
 #include <math.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <malloc.h>
 #include <ctype.h>
 
 #define SWAG_WIDTH (160.f*0.7f)
@@ -39,6 +40,7 @@ fnf_stage_t stage;
 bool hit_sections[256];
 bool bf_dead = false;
 bool paused = false;
+bool music_started = false;
 
 char load_song_name[64];
 const char* difficulty = "hard";
@@ -67,7 +69,11 @@ fnf_vector cam_follow;
 fnf_sprite* dad, *gf, *boyfriend;
 fnf_sprite* dad_icon, *bf_icon;
 fnf_sprite* limo_overlay;
+fnf_sprite* countdown_sprites[4];
+fnf_audio countdown_audio[4];
+fnf_timer countdown_timer, rsg_timer;
 
+int countdown;
 float bf_timer, dad_timer;
 
 char** current_week;
@@ -98,8 +104,10 @@ void create_play_state(){
     health = 1.0f;
     score = 0.0f;
     note_size = 0;
+    countdown = 0;
     bf_dead = false;
     paused = false;
+    music_started = false;
 
     char path[255];
     sprintf(path, "assets/data/%s/%s-%s.json", load_song_name, load_song_name, difficulty);
@@ -215,9 +223,32 @@ void create_play_state(){
 
     load_audio(&dead, "assets/shared/sounds/fnf_loss_sfx.ogg");
 
-    play_audio(&inst);
-    play_audio(&voices);
+    //play_audio(&inst);
+    //play_audio(&voices);
+    current_conductor->songPosition = -current_conductor->crochet * 5;
 
+    static const char* rsg_paths[] = {
+            "", "assets/shared/images/ready.png", "assets/shared/images/set.png", "assets/shared/images/go.png"
+    };
+    static const char* rsg_audio_paths[] = {
+            "assets/shared/sounds/intro3.ogg", "assets/shared/sounds/intro2.ogg", "assets/shared/sounds/intro1.ogg", "assets/shared/sounds/introGo.ogg"
+    };
+
+    countdown_sprites[0] = make_sprite(0, 0, false);
+    for(int i=1;i<4; i++){
+        countdown_sprites[i] = make_sprite(0, 0, false);
+        load_sprite(countdown_sprites[i], rsg_paths[i]);
+        center_sprite(countdown_sprites[i], XY);
+        countdown_sprites[i]->enabled = false;
+        add_sprite(countdown_sprites[i]);
+    }
+
+    for(int i=0;i<4; i++){
+        countdown_audio[i] = make_audio();
+        load_audio(&countdown_audio[i], rsg_audio_paths[i]);
+    }
+
+    countdown_timer = timer_start(current_conductor->crochet);
     //add_sprite(arrow_base);
 }
 
@@ -346,8 +377,31 @@ void pause_action(){
 }
 
 void draw_play_state(){
+    if(countdown_timer.completed && countdown != 5){
+        if(countdown == 4) {
+            countdown++;
+        }
+        if(countdown!= 5) {
+            if (countdown)
+                countdown_sprites[countdown - 1]->enabled = false;
+            countdown_timer = timer_start(current_conductor->crochet);
+            countdown_sprites[countdown]->enabled = true;
+            rsg_timer = timer_start(current_conductor->crochet);
+            play_audio(&countdown_audio[countdown]);
+            countdown++;
+        }
+    }
+    timer_step(&countdown_timer);
+
+    if(countdown == 5 && !music_started){
+        play_audio(&inst);
+        play_audio(&voices);
+        countdown_sprites[3]->enabled = false;
+        music_started = true;
+    }
+
     bool enter_pressed = key_just_pressed(ENTER);
-    if(enter_pressed && !paused) {
+    if(enter_pressed && !paused && countdown == 5) {
         paused = true;
         pause_audio(&inst);
         pause_audio(&voices);
@@ -364,7 +418,7 @@ void draw_play_state(){
     static int32 oldStep = 0;
 	static int32 curStep = 0;
 
-    current_conductor->songPosition = roundf(get_audio_position(&inst)) + current_conductor->offset;
+    current_conductor->songPosition = countdown == 5 ? roundf(get_audio_position(&inst)) + current_conductor->offset : current_conductor->songPosition + 16;//get_delta();//
     oldStep = curStep;
     curStep = (int32)floorf(current_conductor->songPosition / current_conductor->stepCrochet);
 
@@ -456,6 +510,10 @@ void draw_play_state(){
 
     if(curStep >= 0 && oldStep != curStep)
         step_hit(curStep);
+
+    //timer_step(&rsg_timer );
+    //float eased_time = cubeInOut(rsg_timer.elapsed / rsg_timer.target);
+    //set_alpha(countdown_sprites[countdown % 4], (1.0f - eased_time));
 
     draw_all_sprites();
     if(paused){
@@ -798,7 +856,7 @@ void add_health(float hp){
 
     move_sprite(bf_icon, ((health_bar->w * 0.5f) + health_bar->x + (health_bar->w * ratio * 0.01f) - 26) - (health_bar->w * 0.5f), dad_icon->y);
     move_sprite(dad_icon, (health_bar->w * 0.5f) + health_bar->x + (health_bar->w * ratio * 0.01f) - (150 - 26) - (health_bar->w * 0.5f), dad_icon->y);
-    scale_sprite(health_bar, 1.0f - norm_health , health_bar->scale.y);
+    scale_sprite(health_bar, FNF_MAX(1.0f - norm_health, 0), health_bar->scale.y);
 }
 
 void keyShit(){
@@ -850,6 +908,8 @@ void keyShit(){
 }
 
 void end_song(){
+    if(bf_dead) return;
+    set_highscore(load_song_name, score);
     if(current_week){
         strcpy(load_song_name, current_week[++current_week_song]);
         tolowersptr(load_song_name);

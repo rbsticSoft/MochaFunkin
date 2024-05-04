@@ -11,5 +11,6 @@ static const char* week_songs[][3] = {
         {"Senpai", "Roses", "Thorns"},
         {"Ugh", "Guns", "Stress"}
 };
+#define SONGS_PER_WEEK 3
 
 #endif //FNF_DATA_H

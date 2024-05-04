@@ -125,6 +125,7 @@ static const char* SHAPE_SHADER = glsl(
 
 fnf_sprite* create_shape(fnf_sprite* sprite){
     sprite->shader = create_shader_text(0, SHAPE_SHADER);
+    sprite->shader.shared = true;
     glUseProgram(sprite->shader.program);
     glUniformMatrix4fv(glGetUniformLocation(sprite->shader.program, "projection"), 1, false, (float*)ortho);
     sprite->graphic.w = sprite->w;
@@ -207,6 +208,7 @@ fnf_sprite* clone_sprite(fnf_sprite* sprite){
 
     memcpy(target, sprite, sizeof(fnf_sprite));
 
+    sprite->shader.shared = true;
     target->shader.shared = true;
     return target;
 }
@@ -299,7 +301,7 @@ void handle_animations(fnf_sprite* sprite){
     sprite->graphic.w = frame->w;
     sprite->graphic.h = frame->h;
     
-    generateVertices(sprite->gl.vertices, 0, 0, (float)frame->fw, (float)frame->fh);
+    generateVertices(sprite->gl.vertices,   0, 0, (float)frame->fw, (float)frame->fh);
     generate2DVertices(sprite->gl.vertices, frame->x, frame->y, frame->w, frame->h);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(sprite->gl.vertices), sprite->gl.vertices);
 
@@ -350,7 +352,6 @@ void draw_sprite(fnf_sprite* sprite) {
 
     glUseProgram(sprite->shader.program);
 
-    set_alpha(sprite, sprite->alpha);
 
     if(sprite->animated)
         handle_animations(sprite);
@@ -365,6 +366,7 @@ void draw_sprite(fnf_sprite* sprite) {
     //if(sprite->shader.shared){
         move_sprite(sprite, xpos, ypos);
         scale_sprite(sprite, sprite->scale.x, sprite->scale.y);
+        set_alpha(sprite, sprite->alpha);
     //}
 
     if(sprite->flip == X && !sprite->camera)
