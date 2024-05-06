@@ -1,7 +1,10 @@
 #include "audio.h"
+
 #include <vorbis/vorbisfile.h>
 #include <malloc.h>
 
+#include <AL/al.h>
+#include <AL/alc.h>
 ALCdevice* device;
 ALCcontext* context;
 

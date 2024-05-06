@@ -47,6 +47,21 @@
             "cppStandard": "c++17",
             "intelliSenseMode": "linux-gcc-x64",
             "compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc"
+        },
+        {
+            "name": "Wii",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/opt/devkitpro/libogc/include/**",
+                "/opt/devkitpro/portlibs/ppc/include/**"
+            ],
+            "defines": [
+                "__linux__=0"
+            ],
+            "cStandard": "c99",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "linux-gcc-x64",
+            "compilerPath": "/opt/devkitpro/devkitPPC/bin/powerpc-eabi-gcc"
         }
     ],
     "version": 4

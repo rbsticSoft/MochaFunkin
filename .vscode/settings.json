@@ -50,7 +50,10 @@
         "ostream": "c",
         "*.inc": "c",
         "shader.h": "c",
-        "numbers": "c"
+        "numbers": "c",
+        "aesndlib.h": "c",
+        "stb_vorbis.c": "cpp",
+        "new": "cpp"
       },
       "cmake.configureOnOpen": true,
       "C_Cpp.default.compilerPath": "C:\\msys64\\clang64\\bin\\clang.exe"

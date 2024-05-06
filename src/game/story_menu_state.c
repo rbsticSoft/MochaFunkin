@@ -4,6 +4,7 @@
 #include "audio.h"
 #include "font.h"
 #include "fnf_data.h"
+#include <stdio.h>
 
 fnf_sprite* weeks[8];
 fnf_sprite* base_week;
